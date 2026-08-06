@@ -424,6 +424,27 @@ export type Database = {
       export_all_user_data: { Args: Record<string, never>; Returns: Json };
       delete_all_user_data: { Args: Record<string, never>; Returns: Json };
       is_owner: { Args: Record<string, never>; Returns: boolean };
+
+      // Migration 0011. These exist because PostgREST serves only exposed
+      // schemas: `private` is hidden, so it is reached through public
+      // security-definer functions rather than `.schema('private')`.
+      owner_allowlist_check: { Args: { p_email: string }; Returns: boolean };
+      owner_allowlist_upsert: { Args: { p_email: string }; Returns: string };
+      owner_allowlist_list: {
+        Args: Record<string, never>;
+        Returns: Array<{ total: number; enabled_count: number }>;
+      };
+      job_claim: { Args: { p_job_name: string; p_run_key: string }; Returns: string | null };
+      job_finish: {
+        Args: {
+          p_run_id: string;
+          p_status: string;
+          p_error_code?: string | null;
+          p_details?: Json;
+          p_duration_ms?: number | null;
+        };
+        Returns: void;
+      };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;

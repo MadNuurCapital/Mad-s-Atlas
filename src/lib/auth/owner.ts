@@ -42,7 +42,12 @@ export async function isOwner(user: User | null): Promise<boolean> {
   if (!user?.email) return false;
 
   const env = serverEnv();
-  if (!emailsMatch(user.email, env.ATLAS_OWNER_EMAIL)) return false;
+  if (!emailsMatch(user.email, env.ATLAS_OWNER_EMAIL)) {
+    // Names the failing check without printing either address, so the reason
+    // is visible in the Netlify function log during setup.
+    console.error('[auth] rejected: signed-in address does not match ATLAS_OWNER_EMAIL');
+    return false;
+  }
 
   // The configured address matching is not sufficient on its own: access can
   // be revoked by disabling the allowlist row without redeploying.
@@ -53,26 +58,40 @@ export async function isOwner(user: User | null): Promise<boolean> {
   // returned ("evo.inub@gmail.com" against a stored "evoinub@gmail.com") finds
   // nothing and locks the real owner out of their own application.
   const lookupEmail = normaliseEmail(user.email);
-  if (!lookupEmail) return false;
+  if (!lookupEmail) {
+    console.error('[auth] rejected: email could not be normalised');
+    return false;
+  }
 
   try {
     const admin = createAdminClient();
-    const { data, error } = await admin
-      .schema('private')
-      .from('allowed_users')
-      .select('enabled')
-      .eq('email', lookupEmail)
-      .maybeSingle();
+
+    // Called via RPC, NOT `.schema('private')`. PostgREST serves only the
+    // schemas listed under Data API -> Exposed schemas, and `private` is
+    // deliberately absent. The secret key bypasses RLS; it does not bypass
+    // schema exposure. Reading the table directly here failed on every request
+    // and locked the owner out.
+    const { data, error } = await admin.rpc('owner_allowlist_check', {
+      p_email: lookupEmail,
+    });
 
     if (error) {
       // Fail closed. An unreachable allowlist is not permission to proceed.
-      console.error('[auth] allowlist lookup failed', { code: error.code });
+      console.error('[auth] rejected: allowlist RPC failed', {
+        code: error.code,
+        hint: 'Is migration 0011 applied? Run scripts/verify-database.sql.',
+      });
       return false;
     }
 
-    return data?.enabled === true;
+    if (data !== true) {
+      console.error('[auth] rejected: address is not an enabled allowlist entry');
+      return false;
+    }
+
+    return true;
   } catch (error) {
-    console.error('[auth] allowlist lookup threw', {
+    console.error('[auth] rejected: allowlist lookup threw', {
       name: error instanceof Error ? error.name : 'unknown',
     });
     return false;

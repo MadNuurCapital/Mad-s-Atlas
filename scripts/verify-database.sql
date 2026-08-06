@@ -152,6 +152,23 @@ search_path_check as (
     )
 ),
 
+-- 7b. The private schema is hidden from the Data API, so it is reached only
+--     through these public wrappers. Without them the owner cannot sign in and
+--     scheduled jobs cannot claim work.
+rpc_check as (
+  select
+    '7b. private-schema RPC' as check,
+    case when count(*) = 5 then 'PASS' else 'FAIL' end as result,
+    case when count(*) = 5
+      then 'all 5 wrappers present'
+      else count(*)::text || ' of 5 — apply migration 0011, or sign-in fails'
+    end as detail
+  from pg_proc
+  where pronamespace = 'public'::regnamespace
+    and proname in ('owner_allowlist_check', 'owner_allowlist_upsert',
+                    'owner_allowlist_list', 'job_claim', 'job_finish')
+),
+
 -- 8. pgvector must be present or semantic memory silently degrades.
 extension_check as (
   select
@@ -183,5 +200,6 @@ union all select * from anon_check
 union all select * from owner_check
 union all select * from function_check
 union all select * from search_path_check
+union all select * from rpc_check
 union all select * from extension_check
 union all select * from private_check;

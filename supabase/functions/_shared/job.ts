@@ -41,21 +41,21 @@ export async function claimRun(
   jobName: string,
   runKey: string,
 ): Promise<ClaimResult> {
-  const { data, error } = await supabase
-    .schema('private')
-    .from('job_runs')
-    .insert({ job_name: jobName, run_key: runKey, status: 'running' })
-    .select('id')
-    .maybeSingle();
+  // RPC, not `.schema('private')`. PostgREST serves only the schemas listed
+  // under Data API -> Exposed schemas, and `private` is deliberately hidden.
+  // The service key bypasses RLS but NOT schema exposure, so a direct write
+  // here fails every time — silently, at 01:00 UTC, with nobody watching.
+  const { data, error } = await supabase.rpc('job_claim', {
+    p_job_name: jobName,
+    p_run_key: runKey,
+  });
 
-  // A unique violation IS the expected outcome when another run holds it.
-  if (error?.code === '23505' || !data) {
-    return { claimed: false, reason: 'already_running' };
-  }
+  if (error) throw new Error(`Could not claim ${jobName}: ${error.code ?? 'rpc_failed'}`);
 
-  if (error) throw new Error(`Could not claim ${jobName}: ${error.code}`);
+  // A null id means another invocation already owns this unit of work.
+  if (!data) return { claimed: false, reason: 'already_running' };
 
-  return { claimed: true, runId: (data as { id: string }).id };
+  return { claimed: true, runId: data as string };
 }
 
 export async function finishRun(
@@ -64,18 +64,14 @@ export async function finishRun(
   outcome: { status: 'succeeded' | 'failed' | 'skipped'; errorCode?: string; details?: unknown },
   startedAt: number,
 ): Promise<void> {
-  await supabase
-    .schema('private')
-    .from('job_runs')
-    .update({
-      status: outcome.status,
-      completed_at: new Date().toISOString(),
-      duration_ms: Date.now() - startedAt,
-      error_code: outcome.errorCode ?? null,
-      // Diagnostics only — never user content, never secrets.
-      details: outcome.details ?? {},
-    })
-    .eq('id', runId);
+  await supabase.rpc('job_finish', {
+    p_run_id: runId,
+    p_status: outcome.status,
+    p_error_code: outcome.errorCode ?? null,
+    // Diagnostics only — never user content, never secrets.
+    p_details: outcome.details ?? {},
+    p_duration_ms: Date.now() - startedAt,
+  });
 }
 
 /** The local calendar date in a timezone, as YYYY-MM-DD. */

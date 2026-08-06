@@ -91,23 +91,27 @@ async function main(): Promise<void> {
 
     // The allowlist is what makes the app yours. An empty one means
     // seed-owner.ts has not run, and nobody can sign in.
-    const { data: allowed, error: allowErr } = await admin
-      .schema('private')
-      .from('allowed_users')
-      .select('email,enabled');
+    const { data: allowed, error: allowErr } = await admin.rpc('owner_allowlist_list');
 
     if (allowErr) {
-      record('Owner allowlist seeded', 'fail', `could not read private.allowed_users (${allowErr.code})`);
-    } else {
-      const enabled = (allowed ?? []).filter((r) => r.enabled);
       record(
         'Owner allowlist seeded',
-        enabled.length === 1 ? 'pass' : 'fail',
-        enabled.length === 0
-          ? 'EMPTY — run `npx tsx scripts/seed-owner.ts`, or nobody can sign in'
-          : enabled.length === 1
+        'fail',
+        `RPC failed (${allowErr.code ?? 'unknown'}) — is migration 0011 applied?`,
+      );
+    } else {
+      const row = Array.isArray(allowed) ? allowed[0] : allowed;
+      const enabled = Number(
+        (row as { enabled_count?: number } | undefined)?.enabled_count ?? 0,
+      );
+      record(
+        'Owner allowlist seeded',
+        enabled === 1 ? 'pass' : 'fail',
+        enabled === 0
+          ? 'EMPTY — nobody can sign in, including you'
+          : enabled === 1
             ? 'exactly one enabled entry, as it should be'
-            : `${enabled.length} enabled entries — a private app should have ONE`,
+            : `${enabled} enabled entries — a private app should have ONE`,
       );
     }
 

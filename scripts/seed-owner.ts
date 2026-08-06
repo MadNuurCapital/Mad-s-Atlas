@@ -46,17 +46,22 @@ async function main(): Promise<void> {
   const storedEmail = normaliseEmail(ownerEmail);
   if (!storedEmail) fail('ATLAS_OWNER_EMAIL could not be normalised.');
 
-  const { error } = await supabase
-    .schema('private')
-    .from('allowed_users')
-    .upsert({ email: storedEmail, enabled: true }, { onConflict: 'email' });
+  // RPC, not `.schema('private')`. PostgREST only serves exposed schemas, and
+  // `private` is deliberately hidden — writing to it directly fails whatever
+  // key you hold. The function normalises before storing, so the stored form
+  // always matches what the owner check looks up.
+  const { data, error } = await supabase.rpc('owner_allowlist_upsert', {
+    p_email: storedEmail,
+  });
 
   if (error) {
     // Print the code, never the payload — the payload contains the address.
     fail(`Could not update the allowlist (${error.code ?? 'unknown'}): ${error.message}`);
   }
 
-  console.log(`\n  ✓ Owner allowlist updated: ${maskEmail(ownerEmail)} (enabled)\n`);
+  console.log(
+    `\n  ✓ Owner allowlist updated: ${maskEmail(String(data ?? storedEmail))} (enabled)\n`,
+  );
   console.log('  Next: enable the Before User Created hook so the allowlist is');
   console.log('  actually enforced — Dashboard → Authentication → Hooks →');
   console.log('  Before User Created → private.check_user_allowed');
