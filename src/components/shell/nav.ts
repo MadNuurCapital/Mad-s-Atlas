@@ -1,4 +1,5 @@
 import {
+  BellRing,
   CalendarDays,
   CheckSquare,
   Clock,
@@ -61,6 +62,12 @@ export const NAV_ITEMS: readonly NavItem[] = [
     icon: CheckSquare,
     primary: true,
     description: 'What needs doing',
+  },
+  {
+    href: '/reminders',
+    label: 'Reminders',
+    icon: BellRing,
+    description: 'One-off and recurring',
   },
   {
     href: '/memory',
