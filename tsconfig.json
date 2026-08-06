@@ -40,8 +40,11 @@
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts"
   ],
+  // supabase/functions runs on Deno with its own globals and .ts import
+  // specifiers; type-checking it with the app's Node config produces only noise.
   "exclude": [
     "node_modules",
-    "tests/e2e"
+    "tests/e2e",
+    "supabase/functions"
   ]
 }

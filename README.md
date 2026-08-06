@@ -22,7 +22,7 @@ ever sign in.
 | **6** | Permission engine, tool registry, approval gate | 🟡 **Core complete — this commit** |
 | **7** | Google: token refresh, Gmail, Calendar, tool definitions | 🟡 **Complete pending Google credentials — this commit** |
 | **8** | Grounded research: routing, source extraction, SSRF-safe URLs | 🟡 **Complete pending a Gemini key — this commit** |
-| 9 | Daily briefing, cron, proactive features | ⬜ Not started |
+| **9** | Edge Functions, job claim ledger, briefing, reminders, retention | 🟡 **Complete pending a Supabase project — this commit** |
 | 10 | Hardening, audit, production deployment | ⬜ Not started |
 
 The documents in this repository are the specification that later phases
@@ -36,7 +36,7 @@ same thing and only one of them is worth trusting.
 
 | Area | Status |
 |---|---|
-| Schema, RLS, approval claim, refresh-token guard, memory retrieval | ✅ Executed against a real PostgreSQL 16 + pgvector database. 77 integration tests |
+| Schema, RLS, approval claim, refresh-token guard, memory, job idempotency | ✅ Executed against a real PostgreSQL 16 + pgvector database. 86 integration tests |
 | Owner verification, email normalisation, env contract, timezone handling | ✅ 35 unit tests; SQL and TypeScript normalisation compared on identical input |
 | Recurrence, log redaction, research routing, URL safety, source extraction | ✅ 166 unit tests total |
 | Permission decisions, Level 3 absence, payload hashing | ✅ 37 unit tests |

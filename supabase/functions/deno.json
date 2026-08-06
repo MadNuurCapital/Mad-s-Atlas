@@ -1,0 +1,6 @@
+{
+  "//": "Edge Functions run on Deno, not Node. They are excluded from the app's tsconfig and eslint config for that reason.",
+  "imports": {
+    "@supabase/supabase-js": "jsr:@supabase/supabase-js@2"
+  }
+}
