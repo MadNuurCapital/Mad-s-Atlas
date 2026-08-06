@@ -1,0 +1,63 @@
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+
+# next.js
+/.next/
+/out/
+next-env.d.ts
+
+# production
+/build
+/dist
+
+# testing
+/coverage
+/test-results
+/playwright-report
+/blob-report
+/playwright/.cache
+
+# environment — NEVER commit real secrets.
+# .env.example is the only env file that belongs in git.
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
+!.env.example
+
+# secrets & keys (defence in depth — these should never exist here anyway)
+*.pem
+*.key
+*.p12
+*.pfx
+service-account*.json
+gcp-*.json
+**/secrets/
+
+# supabase local dev
+supabase/.branches
+supabase/.temp
+supabase/.env
+
+# editor / OS
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# typescript
+*.tsbuildinfo
+
+# netlify
+.netlify/

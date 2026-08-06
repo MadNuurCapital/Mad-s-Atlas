@@ -1,0 +1,161 @@
+# Mad's Atlas
+
+Muhammad's private personal AI. A voice-first personal operating system with real
+memory, real tools, hard permission boundaries and an approval gate on every
+consequential action.
+
+**This application is exclusively for Muhammad.** Exactly one email address can
+ever sign in.
+
+---
+
+## Status
+
+| Phase | Scope | State |
+|---|---|---|
+| **0** | Architecture, database design, threat model, contracts, setup guides | ✅ **Complete — this commit** |
+| 1 | Next.js foundation, design system, navigation, env validation, health check | ⬜ Not started |
+| 2 | Auth, owner allowlist, migrations, Row Level Security | ⬜ Not started |
+| 3 | Profile, settings, tasks, reminders, ideas, action logs | ⬜ Not started |
+| 4 | Memory system: suggest, confirm, hybrid search, versions | ⬜ Not started |
+| 5 | Gemini Live voice | ⬜ Not started |
+| 6 | Orchestrator, tool registry, permissions, approvals | ⬜ Not started |
+| 7 | Gmail + Calendar integration | ⬜ Not started |
+| 8 | Grounded current-information research | ⬜ Not started |
+| 9 | Daily briefing, cron, proactive features | ⬜ Not started |
+| 10 | Hardening, audit, production deployment | ⬜ Not started |
+
+**Phase 0 contains no application code by design.** No `package.json`, no
+`src/`, no migrations. The documents in this repository are the specification
+that later phases implement against — the schema is argued on paper before it
+becomes a migration that is expensive to change.
+
+---
+
+## What it does
+
+Mad's Atlas helps Muhammad understand his day, talk naturally through realtime
+voice, research current information with real sources, review his calendar,
+search and summarise Gmail, prepare email drafts, capture tasks, reminders and
+ideas, remember confirmed personal information, prepare before meetings,
+recommend the most important next action, carry out approved personal actions,
+and keep a clear history of everything it has done.
+
+The voice is only the interface. The product is the intelligence, memory,
+tools, permissions and actions behind it.
+
+### What it deliberately does not do
+
+- **Never sends email.** Drafts only, and only after approval.
+- **Never touches Atlas DART, Atlas Academy, Atlas Investments,** client- or
+  advisor-management systems, or any financial advisory or company database.
+  Mad's Atlas may *know these projects exist* if Muhammad saves that as a
+  personal memory. It has no path to their data.
+- **Never listens in the background.** No always-on microphone. No stored audio.
+- **Never executes financial transactions, payments or investments.**
+- **Never acts on instructions found inside emails, web pages or calendar
+  descriptions.** That content is data, not command.
+
+---
+
+## Architecture at a glance
+
+```
+Browser ──► Next.js on Netlify ──► Supabase Postgres (RLS)
+   │              │                      ▲
+   │              ├──► Gemini text ──────┤
+   │              └──► Google APIs ──────┤
+   │                                     │
+   └──► Gemini Live (WebSocket)     Edge Functions ◄── Supabase Cron
+        via ephemeral token only
+```
+
+The browser holds two credentials and no more: a Supabase session cookie and a
+single-use, model-locked, short-lived Gemini ephemeral token. The permanent
+Gemini key, the Supabase secret key, the Google tokens and the encryption key
+never leave the server.
+
+Full detail: [ARCHITECTURE.md](./ARCHITECTURE.md)
+
+---
+
+## Technology
+
+Next.js 16 App Router · TypeScript strict · Tailwind · Supabase (Postgres, Auth,
+RLS, Realtime, Storage, Edge Functions, Cron) · pgvector · PostgreSQL full-text
+search · Gemini Live API · Gemini with Google Search grounding · Gmail API ·
+Google Calendar API · Netlify · Zod · Vitest · Playwright
+
+Authentication uses `@supabase/ssr`. The deprecated Supabase Auth Helpers are
+not used.
+
+---
+
+## Documentation
+
+Start here, in this order:
+
+| Document | Read it for |
+|---|---|
+| [PRODUCT_REQUIREMENTS.md](./PRODUCT_REQUIREMENTS.md) | What is being built and what "done" means |
+| [ARCHITECTURE.md](./ARCHITECTURE.md) | System boundaries and the request lifecycle |
+| [DATABASE_SCHEMA.md](./DATABASE_SCHEMA.md) | Every table, constraint, index and RLS policy |
+| [SECURITY.md](./SECURITY.md) | Threat model and the controls for each threat |
+| [PERMISSIONS.md](./PERMISSIONS.md) | What Atlas may do alone, what needs approval, what is forbidden |
+| [MEMORY_SYSTEM.md](./MEMORY_SYSTEM.md) | The four memory layers and hybrid retrieval |
+| [DATA_RETENTION.md](./DATA_RETENTION.md) | What is stored, for how long, and how to delete it |
+
+Setup, in the order you will need it:
+
+| Document | Read it for |
+|---|---|
+| [SUPABASE_SETUP.md](./SUPABASE_SETUP.md) | Project creation, CLI, migrations, extensions |
+| [GOOGLE_OAUTH_SETUP.md](./GOOGLE_OAUTH_SETUP.md) | OAuth client, scopes, consent screen |
+| [GEMINI_LIVE_SETUP.md](./GEMINI_LIVE_SETUP.md) | API key, ephemeral tokens, voice session model |
+| [NETLIFY_DEPLOYMENT.md](./NETLIFY_DEPLOYMENT.md) | Environment variables, deploy, verification |
+| [SCHEDULED_JOBS.md](./SCHEDULED_JOBS.md) | Cron jobs, UTC/Singapore times, idempotency |
+
+Working on the code:
+
+| Document | Read it for |
+|---|---|
+| [IMPLEMENTATION_PLAN.md](./IMPLEMENTATION_PLAN.md) | Phase-by-phase scope and exit gates |
+| [TESTING.md](./TESTING.md) | Test strategy and the 30 required end-to-end scenarios |
+| [TROUBLESHOOTING.md](./TROUBLESHOOTING.md) | Symptom → cause → fix |
+| [CLAUDE.md](./CLAUDE.md) | Rules for AI assistants working in this repo |
+
+---
+
+## Getting started (from Phase 1 onward)
+
+Phase 1 has not run yet, so there is nothing to install. Once it has:
+
+```bash
+cp .env.example .env.local     # then fill it in
+npm install
+npm run dev
+```
+
+Before the app will do anything useful you must complete the external setup —
+Supabase project, Google OAuth client, Gemini API key, owner seeding. The
+ordered checklist with exact commands is in
+[SUPABASE_SETUP.md](./SUPABASE_SETUP.md) § Setup checklist.
+
+### One thing to get right early
+
+Muhammad signs in with a personal `@gmail.com`, so the Google OAuth app is type
+**External**. While an External app sits in **Testing** status, Google expires
+the refresh token **every 7 days** — which would silently stop the daily
+briefing and meeting preparation each week.
+
+**Publish the OAuth app to Production status.** Details and the exact steps are
+in [GOOGLE_OAUTH_SETUP.md](./GOOGLE_OAUTH_SETUP.md) § Testing vs Production.
+
+---
+
+## Repository boundary
+
+This repository is standalone. It shares no code, no database, no credentials
+and no runtime with `MadNuurCapital/MADPLANNING` (Atlas Ad Agent) or any other
+Atlas property. That separation is a product requirement, not an accident of
+layout — see [SECURITY.md](./SECURITY.md) § Cross-system isolation.
