@@ -9,6 +9,25 @@
 -- Output contains no secrets, so it is safe to share.
 -- =============================================================================
 
+-- Reading a table that may not exist needs dynamic SQL: PostgreSQL plans the
+-- whole statement up front, so even an unreachable branch of a CASE fails to
+-- parse when the relation is absent. `pg_temp` keeps this function session-
+-- local — it disappears when you close the editor and leaves nothing behind.
+create or replace function pg_temp.allowlist_count()
+returns integer
+language plpgsql
+as $fn$
+declare
+  n integer;
+begin
+  if to_regclass('private.allowed_users') is null then
+    return -1;                        -- table missing: migrations not applied
+  end if;
+  execute 'select count(*)::int from private.allowed_users where enabled' into n;
+  return n;
+end;
+$fn$;
+
 with
 
 -- 1. Every table the schema defines must exist.
@@ -85,16 +104,20 @@ anon_check as (
 
 -- 5. The allowlist is what makes this application yours. Empty means nobody
 --    can sign in; more than one means someone else can.
+-- Counted through a function so a MISSING table reports FAIL instead of
+-- aborting the whole query. A verification script that dies on the first
+-- problem cannot tell you about the other eight.
 owner_check as (
   select
     '5. Owner allowlist' as check,
-    case when count(*) = 1 then 'PASS' else 'FAIL' end as result,
+    case when n = 1 then 'PASS' else 'FAIL' end as result,
     case
-      when count(*) = 0 then 'EMPTY — run: npx tsx scripts/seed-owner.ts'
-      when count(*) = 1 then 'exactly one enabled owner, as it should be'
-      else count(*)::text || ' enabled entries — a private app should have ONE'
+      when n < 0 then 'TABLE MISSING — migrations have not been applied'
+      when n = 0 then 'EMPTY — nobody can sign in, including you'
+      when n = 1 then 'exactly one enabled owner, as it should be'
+      else n::text || ' enabled entries — a private app should have ONE'
     end as detail
-  from private.allowed_users where enabled
+  from (select pg_temp.allowlist_count() as n) t
 ),
 
 -- 6. Without claim_approval there is no atomic guard against an action

@@ -33,8 +33,30 @@ grant usage on schema extensions to public;
 create extension if not exists "pgcrypto" with schema extensions;
 create extension if not exists "vector"   with schema extensions;  -- semantic memory
 create extension if not exists "citext"   with schema extensions;  -- case-insensitive email
-create extension if not exists "pg_cron";   -- scheduled jobs (must be in its own default)
-create extension if not exists "pg_net";    -- cron -> Edge Function calls
+-- pg_cron and pg_net drive the SCHEDULED jobs only. They are Supabase-managed
+-- and absent from a plain PostgreSQL. A missing scheduler must not stop the
+-- whole schema from building: sign-in, memory, tasks and approvals do not
+-- depend on them, and blocking those on a cron extension would turn a
+-- degraded feature into a dead application.
+do $$
+begin
+  create extension if not exists "pg_cron";
+exception when others then
+  raise warning
+    'pg_cron unavailable (%). Scheduled jobs will not run until it is enabled '
+    'in Database -> Extensions. Everything else works.', sqlerrm;
+end
+$$;
+
+do $$
+begin
+  create extension if not exists "pg_net";
+exception when others then
+  raise warning
+    'pg_net unavailable (%). Cron cannot call Edge Functions until it is '
+    'enabled in Database -> Extensions. Everything else works.', sqlerrm;
+end
+$$;
 
 -- gen_random_uuid() is in pg_catalog from PostgreSQL 13 onward, so DEFAULTs
 -- resolve without depending on where pgcrypto landed.
