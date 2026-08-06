@@ -32,6 +32,31 @@ grant usage on schema extensions to public;
 
 create extension if not exists "pgcrypto" with schema extensions;
 create extension if not exists "vector"   with schema extensions;  -- semantic memory
+
+-- If pgvector was enabled earlier into a different schema (the dashboard has
+-- historically defaulted to `public`), `if not exists` above silently skips
+-- and every `extensions.vector` reference then fails five migrations later
+-- with a confusing "type does not exist". Move it, or say plainly why we
+-- cannot.
+do $$
+declare
+  v_schema name;
+begin
+  select n.nspname into v_schema
+  from pg_extension e join pg_namespace n on n.oid = e.extnamespace
+  where e.extname = 'vector';
+
+  if v_schema is not null and v_schema <> 'extensions' then
+    raise notice 'pgvector found in %, moving it to extensions', v_schema;
+    execute 'alter extension vector set schema extensions';
+  end if;
+exception when others then
+  raise exception
+    'pgvector is installed in schema "%" but this schema expects it in '
+    '"extensions", and it could not be moved (%). Fix it in the SQL editor '
+    'with: alter extension vector set schema extensions;', v_schema, sqlerrm;
+end
+$$;
 create extension if not exists "citext"   with schema extensions;  -- case-insensitive email
 -- pg_cron and pg_net drive the SCHEDULED jobs only. They are Supabase-managed
 -- and absent from a plain PostgreSQL. A missing scheduler must not stop the
