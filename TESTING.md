@@ -340,6 +340,20 @@ Integration and E2E run against a staging Supabase project, not on every push.
 
 ---
 
+## Current coverage
+
+| Suite | Count | Runs against |
+|---|---|---|
+| Unit | 192 | Pure logic, no network |
+| Integration | 86 | A real PostgreSQL 16 + pgvector cluster |
+| End-to-end | 22 | A real browser, desktop and mobile viewports |
+
+Of the 30 required end-to-end scenarios, those that need only the application
+itself are covered. The remainder — anything requiring a live Google account,
+a Gemini key or a deployed Supabase project — are written but cannot run until
+those credentials exist. `README.md` § What has actually been verified states
+the split.
+
 ## Writing a test worth having
 
 Ask: **what invariant does this protect?**

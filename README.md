@@ -23,7 +23,7 @@ ever sign in.
 | **7** | Google: token refresh, Gmail, Calendar, tool definitions | 🟡 **Complete pending Google credentials — this commit** |
 | **8** | Grounded research: routing, source extraction, SSRF-safe URLs | 🟡 **Complete pending a Gemini key — this commit** |
 | **9** | Edge Functions, job claim ledger, briefing, reminders, retention | 🟡 **Complete pending a Supabase project — this commit** |
-| 10 | Hardening, audit, production deployment | ⬜ Not started |
+| **10** | Prompt-injection suite, secret scanning, security audit script | 🟡 **Complete pending deployment — this commit** |
 
 The documents in this repository are the specification that later phases
 implement against — the schema is argued on paper before it becomes a migration
@@ -40,6 +40,7 @@ same thing and only one of them is worth trusting.
 | Owner verification, email normalisation, env contract, timezone handling | ✅ 35 unit tests; SQL and TypeScript normalisation compared on identical input |
 | Recurrence, log redaction, research routing, URL safety, source extraction | ✅ 166 unit tests total |
 | Permission decisions, Level 3 absence, payload hashing | ✅ 37 unit tests |
+| Prompt-injection resistance | ✅ 26 unit tests over 7 realistic payloads |
 | Unauthenticated access control, secret containment | ✅ 22 end-to-end checks across desktop and mobile viewports |
 | Token encryption, refresh-token preservation, no-send boundary | ✅ 15 further unit tests |
 | Live Gmail / Calendar API calls | ⬜ Not yet — needs a Google OAuth client. Encryption, refresh logic and permission levels ARE tested |
