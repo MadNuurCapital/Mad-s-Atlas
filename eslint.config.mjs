@@ -37,6 +37,15 @@ const config = [
       'no-console': ['warn', { allow: ['warn', 'error'] }],
     },
   },
+
+  {
+    // CLI scripts and tests print to stdout by design — that IS their output.
+    // They are never bundled, so there is no personal-data leak path here.
+    files: ['scripts/**/*.ts', 'tests/**/*.ts'],
+    rules: {
+      'no-console': 'off',
+    },
+  },
 ];
 
 export default config;

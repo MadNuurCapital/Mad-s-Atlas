@@ -14,8 +14,8 @@ ever sign in.
 | Phase | Scope | State |
 |---|---|---|
 | **0** | Architecture, database design, threat model, contracts, setup guides | ✅ Complete |
-| **1** | Next.js foundation, design system, navigation, env validation, health check | ✅ **Complete — this commit** |
-| 2 | Auth, owner allowlist, migrations, Row Level Security | ⬜ Not started |
+| **1** | Next.js foundation, design system, navigation, env validation, health check | ✅ Complete |
+| **2** | Auth, owner allowlist, migrations, Row Level Security | ✅ **Complete — this commit** |
 | 3 | Profile, settings, tasks, reminders, ideas, action logs | ⬜ Not started |
 | 4 | Memory system: suggest, confirm, hybrid search, versions | ⬜ Not started |
 | 5 | Gemini Live voice | ⬜ Not started |
@@ -29,9 +29,23 @@ The documents in this repository are the specification that later phases
 implement against — the schema is argued on paper before it becomes a migration
 that is expensive to change.
 
-Phases 2 onward add the database and features. The application currently runs,
-navigates and deploys, with every screen showing an honest empty state; no
-screen renders sample data dressed up as real content.
+### What has actually been verified
+
+Kept deliberately explicit, because "written" and "proven to work" are not the
+same thing and only one of them is worth trusting.
+
+| Area | Status |
+|---|---|
+| Schema, RLS, approval claim, refresh-token guard | ✅ Executed against a real PostgreSQL 16 + pgvector database. 58 integration tests |
+| Owner verification, email normalisation, env contract, timezone handling | ✅ 35 unit tests; SQL and TypeScript normalisation compared on identical input |
+| Unauthenticated access control | ✅ 16 end-to-end checks across desktop and mobile viewports |
+| Google OAuth against real Google | ⬜ Not yet — needs a Google Cloud OAuth client |
+| Gemini voice, research, briefings | ⬜ Not yet — needs a Gemini API key |
+| Deployment to Netlify | ⬜ Not yet — needs a Supabase project and Netlify site |
+
+The local database harness is `bash scripts/local-db.sh start`. It applies every
+migration to a throwaway cluster so the security properties are tested rather
+than asserted — see [TESTING.md](./TESTING.md).
 
 ---
 

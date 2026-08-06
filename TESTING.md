@@ -14,13 +14,49 @@ component renders.
 ```bash
 npm run test              # unit
 npm run test:watch        # unit, watching
-npm run test:integration  # integration — needs a Supabase project
-npm run test:e2e          # end-to-end — needs a running app
+npm run test:integration  # integration — needs the local database harness
+npm run test:e2e          # end-to-end — builds and serves the app
 npm run test:e2e:ui       # Playwright UI mode
 npm run lint
-npx tsc --noEmit
+npm run typecheck
 npm run build
+npm run verify            # lint + typecheck + unit + build
 ```
+
+## The local database harness
+
+Integration tests run against a **real PostgreSQL cluster**, not a mock. This
+is what turns "RLS protects the data" from a claim into a tested property.
+
+```bash
+bash scripts/local-db.sh start    # create cluster, apply all migrations
+bash scripts/local-db.sh reset    # destroy and rebuild from scratch
+bash scripts/local-db.sh psql     # open a shell
+bash scripts/local-db.sh stop
+```
+
+It needs `postgresql-16` and `postgresql-16-pgvector`. The script installs
+neither — it fails with the exact `apt-get` line if they are missing.
+
+`tests/fixtures/supabase-shim.sql` supplies the pieces Supabase manages: the
+`auth` schema, `auth.uid()`, the four roles, and stand-ins for `pg_net` and
+`pg_cron` that record what *would* have been called. It is a test fixture, is
+never deployed, and is never imported by application code.
+
+Integration tests **skip** rather than fail when the harness is absent, so
+`npm run verify` stays useful without a database. CI must run them with it up.
+
+### Two ways to write a useless RLS test
+
+Both produce a suite that passes no matter how broken the policies are, and
+both were hit while building this:
+
+1. **`SET LOCAL` outside a transaction is a silent no-op.** The role never
+   changes, every statement runs as the superuser, and superusers bypass RLS.
+2. **Forgetting `set role authenticated`.** Same outcome by a different route.
+
+`tests/helpers/db.ts` does both correctly — use `asUser()` and `asAnon()`
+rather than issuing statements directly.
 
 Every phase must pass all of these before it is considered complete.
 

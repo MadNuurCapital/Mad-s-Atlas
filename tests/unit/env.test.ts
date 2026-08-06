@@ -43,7 +43,10 @@ describe('server environment', () => {
   it('NEVER includes a secret value in the error message', () => {
     // The whole reason this file exists. An error that helpfully echoes a
     // leaked key is worse than no error at all.
-    const secret = 'sb_secret_this_must_never_be_printed';
+    // Deliberately NOT shaped like a real `sb_secret_…` key: scripts/security-check.ts
+    // scans for that pattern, and a fixture that trips it would train us to
+    // ignore the one tool whose job is to catch a genuine leak.
+    const secret = 'SENTINEL-VALUE-MUST-NEVER-BE-PRINTED-8f3a';
     process.env.SUPABASE_SECRET_KEY = secret;
     process.env.TOKEN_ENCRYPTION_KEY = 'too-short';
     __resetEnvCache();

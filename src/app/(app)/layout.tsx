@@ -2,16 +2,19 @@ import type { ReactNode } from 'react';
 
 import { BottomNav } from '@/components/shell/BottomNav';
 import { Sidebar } from '@/components/shell/Sidebar';
+import { requireOwner } from '@/lib/auth/owner';
 
 /**
  * Authenticated application shell.
  *
- * PHASE 2 adds the owner guard here — `requireOwner()` runs before anything
- * renders, so an unauthenticated or non-owner request never reaches a screen.
- * Route protection is server-side by design; middleware is a convenience
- * redirect only. See SECURITY.md § T1.
+ * `requireOwner()` runs before anything renders, so an unauthenticated or
+ * non-owner request never reaches a screen. This is server-side by design —
+ * middleware only refreshes the session and is not a gate, and a client-side
+ * redirect is decoration rather than protection. See SECURITY.md § T1.
  */
-export default function AppLayout({ children }: { children: ReactNode }) {
+export default async function AppLayout({ children }: { children: ReactNode }) {
+  await requireOwner();
+
   return (
     <div className="flex min-h-dvh bg-surface">
       <Sidebar />

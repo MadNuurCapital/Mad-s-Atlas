@@ -20,12 +20,41 @@ Postgres on Supabase. This document is the authoritative schema specification;
 
 ### Extensions required
 
+Extensions live in a dedicated `extensions` schema, never in `public`:
+
 ```sql
-create extension if not exists "pgcrypto";   -- gen_random_uuid()
-create extension if not exists "vector";     -- pgvector, semantic memory
-create extension if not exists "pg_cron";    -- scheduled jobs
-create extension if not exists "pg_net";     -- cron → Edge Function invocation
+create schema if not exists extensions;
+
+create extension if not exists "pgcrypto" with schema extensions;
+create extension if not exists "vector"   with schema extensions;  -- semantic memory
+create extension if not exists "citext"   with schema extensions;  -- case-insensitive email
+create extension if not exists "pg_cron";   -- scheduled jobs
+create extension if not exists "pg_net";    -- cron → Edge Function invocation
 ```
+
+> **Why the separate schema — this one bites.** Every security-definer function
+> sets `search_path = ''` so it cannot be hijacked by a shadowing object. That
+> also means operators and types must be schema-qualified, and a qualification
+> needs a stable schema to point at. Install pgvector into `public`, write
+> `embedding <=> query`, and the function **creates without complaint and then
+> fails at call time** with `operator does not exist`. The same applies to
+> `::citext` casts.
+>
+> Pinning the schema lets every reference be written explicitly:
+> `extensions.vector(1536)`, `OPERATOR(extensions.<=>)`,
+> `extensions.vector_cosine_ops`, `::extensions.citext`.
+>
+> `gen_random_uuid()` is in `pg_catalog` from PostgreSQL 13 onward, so column
+> defaults resolve regardless of where `pgcrypto` landed.
+
+### Table-level grants
+
+RLS decides *which rows*; a `GRANT` decides whether the role may touch the
+table at all. Supabase grants these to `authenticated` by default, so omitting
+them appears to work there and fails on any other PostgreSQL — and inheriting
+access control from a platform default is not worth depending on. Migration
+`…_row_level_security.sql` therefore issues them explicitly, mirroring the
+policy matrix below.
 
 ### Schemas
 
