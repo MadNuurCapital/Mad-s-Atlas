@@ -105,24 +105,58 @@ browser present. They need a valid refresh token. In Testing status, they would
 work for a week and then silently stop — and because the failure is in a cron
 job, nothing on screen would obviously break.
 
-### Publish to Production
+### The Gmail scopes change everything — read this
 
-1. **OAuth consent screen → Publish app**
-2. Confirm.
-3. Status becomes **In production**.
+Google grades scopes. `calendar.readonly` and `calendar.events` are
+**sensitive**. `gmail.readonly` and `gmail.compose` are **restricted**, which
+is a stricter tier, and the difference decides what you can actually do.
 
-You will see "Verification not required" or a prompt to submit for verification.
-For a personal application used only by its developer, submitting for
-verification is unnecessary. The consent screen shows an unverified-app warning;
-click **Advanced → Go to Mad's Atlas (unsafe)** once, and consent is remembered.
+| Publishing status | Sensitive scopes only | With restricted Gmail scopes |
+|---|---|---|
+| **Testing** | Works for test users | **Works for test users** |
+| **Production, unverified** | Works after the "unsafe" warning | **BLOCKED — sign-in fails** |
+| **Production, verified** | Works | Works, but needs a CASA Tier 2 security audit |
 
-Publishing without verification limits the app to 100 users. That is 99 more
-than needed.
+Publishing an unverified app that requests Gmail scopes does not show a warning
+you can click past. Google refuses outright:
 
-**The application defends itself regardless.** The allowlist and the Before User
-Created hook mean Production status does not let anyone else in — the OAuth
-consent screen is not the access control. See
-[SECURITY.md](./SECURITY.md) § T2.
+```
+Access blocked: <project>.supabase.co has not completed
+the Google verification process
+Error 403: access_denied
+```
+
+Verifying restricted scopes requires a **CASA Tier 2 assessment** by an
+approved third-party assessor — an annual, paid engagement. That is not a
+realistic path for a single-user personal application.
+
+### So pick one of these
+
+**A — Testing status with yourself as a test user.** Sign-in works today, with
+all Gmail and Calendar features. The cost: Google expires the refresh token
+every **7 days**, so you must reconnect Google weekly, and the scheduled jobs
+degrade until you do. Atlas handles this honestly — the connection shows
+`needs_reconnection` and the briefing says which sections are missing.
+
+**B — Drop the Gmail scopes.** Keep only `calendar.readonly` and
+`calendar.events`. Those are sensitive, not restricted, so an unverified
+Production app works after clicking through the warning once, and refresh
+tokens do **not** expire. You lose Gmail search, summaries and drafts. Remove
+them from `SCOPES` in `src/features/auth/SignInButton.tsx` and from the
+Supabase Google provider config.
+
+**C — Use a Google Workspace account.** With Workspace on a domain you own, the
+OAuth app can be type **Internal**: no verification, no 7-day expiry, full
+Gmail access. This is the only option that gives everything at once, and it
+costs a Workspace subscription.
+
+### To use option A (recommended to start)
+
+1. Google Cloud Console → **APIs & Services → OAuth consent screen**
+2. If status is "In production", click **Back to testing**
+3. Under **Test users**, click **+ ADD USERS**
+4. Add your exact owner address, then **Save**
+5. Sign in again — it will now work
 
 ---
 
