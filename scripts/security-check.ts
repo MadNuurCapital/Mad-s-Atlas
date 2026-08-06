@@ -53,11 +53,45 @@ console.log('\n  Mad’s Atlas — security check\n');
 /*  1. Secrets in the working tree                                             */
 /* -------------------------------------------------------------------------- */
 
+/**
+ * A file may opt out by containing this exact marker. Used only where
+ * secret-SHAPED strings are the subject under test — a redaction test cannot
+ * exist without them.
+ *
+ * This is a narrow, declared exception rather than a blanket exclusion of
+ * `tests/`: every opt-out is greppable, and a real credential pasted into any
+ * other test is still caught.
+ */
+const OPT_OUT_MARKER = 'security-check: allow-secret-fixtures';
+
+function optedOutFiles(): Set<string> {
+  const hits = sh(`git grep -lF '${OPT_OUT_MARKER}' || true`).trim();
+  return new Set(hits ? hits.split('\n').filter(Boolean) : []);
+}
+
+const exempt = optedOutFiles();
+
 for (const { name, regex } of SECRET_PATTERNS) {
   const hits = sh(
     `git grep -nIE '${regex}' -- ':!*.lock' ':!package-lock.json' ':!scripts/security-check.ts' || true`,
-  ).trim();
-  if (hits) critical('secrets in tree', `${name}:\n      ${hits.split('\n').join('\n      ')}`);
+  )
+    .trim()
+    .split('\n')
+    .filter(Boolean)
+    // A hit is ignored only when its file carries the marker.
+    .filter((line) => !exempt.has(line.slice(0, line.indexOf(':'))));
+
+  if (hits.length > 0) {
+    critical('secrets in tree', `${name}:\n      ${hits.join('\n      ')}`);
+  }
+}
+
+if (exempt.size > 0) {
+  console.log(
+    `  ℹ ${exempt.size} file(s) opted out of secret scanning via the marker:\n` +
+      [...exempt].map((f) => `      ${f}`).join('\n') +
+      '\n',
+  );
 }
 
 /* -------------------------------------------------------------------------- */

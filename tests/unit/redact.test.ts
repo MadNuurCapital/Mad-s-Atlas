@@ -2,6 +2,15 @@ import { describe, expect, it } from 'vitest';
 
 import { redactError, redactForLog, redactObject } from '@/lib/validation/redact';
 
+/*
+ * security-check: allow-secret-fixtures
+ *
+ * This file contains deliberately secret-SHAPED strings, because a redaction
+ * test cannot exist without them. None is a real credential. The marker above
+ * tells scripts/security-check.ts to skip this file, and is greppable so every
+ * exception stays visible.
+ */
+
 /**
  * `action_logs` is retained for a year and is what Muhammad reads to
  * understand what Atlas did. Anything secret that reaches it is a leak with a

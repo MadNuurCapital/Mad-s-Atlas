@@ -19,7 +19,7 @@ ever sign in.
 | **3** | Tasks, recurrence engine, action log, redaction | 🟡 Partial |
 | **4** | Memory: four layers, suggest/confirm, hybrid search, versions, export | ✅ **Complete — this commit** |
 | 5 | Gemini Live voice | ⬜ Not started |
-| 6 | Orchestrator, tool registry, permissions, approvals | ⬜ Not started |
+| **6** | Permission engine, tool registry, approval gate | 🟡 **Core complete — this commit** |
 | 7 | Gmail + Calendar integration | ⬜ Not started |
 | 8 | Grounded current-information research | ⬜ Not started |
 | 9 | Daily briefing, cron, proactive features | ⬜ Not started |
@@ -39,6 +39,7 @@ same thing and only one of them is worth trusting.
 | Schema, RLS, approval claim, refresh-token guard, memory retrieval | ✅ Executed against a real PostgreSQL 16 + pgvector database. 77 integration tests |
 | Owner verification, email normalisation, env contract, timezone handling | ✅ 35 unit tests; SQL and TypeScript normalisation compared on identical input |
 | Recurrence across the Singapore day boundary, log redaction | ✅ 35 further unit tests |
+| Permission decisions, Level 3 absence, payload hashing | ✅ 37 unit tests |
 | Unauthenticated access control | ✅ 16 end-to-end checks across desktop and mobile viewports |
 | Google OAuth against real Google | ⬜ Not yet — needs a Google Cloud OAuth client |
 | Gemini voice, research, briefings | ⬜ Not yet — needs a Gemini API key |
