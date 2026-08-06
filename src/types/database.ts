@@ -324,7 +324,18 @@ export type Database = {
     Tables: {
       profiles: Table<Profile>;
       user_settings: Table<UserSettings>;
-      memories: Table<Memory>;
+      /**
+       * `embedding` is absent from the Row shape on purpose: a 1536-float
+       * vector is never useful to read into the application, and selecting it
+       * would bloat every query. It appears in the write shapes because
+       * editing content must clear the stale vector so the backfill job
+       * regenerates it.
+       */
+      memories: Table<
+        Memory,
+        Partial<Memory> & { embedding?: string | null },
+        Partial<Memory> & { embedding?: string | null }
+      >;
       memory_versions: Table<MemoryVersion>;
       tasks: Table<Task>;
       reminders: Table<Reminder>;

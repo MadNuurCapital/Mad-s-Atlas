@@ -16,8 +16,8 @@ ever sign in.
 | **0** | Architecture, database design, threat model, contracts, setup guides | ✅ Complete |
 | **1** | Next.js foundation, design system, navigation, env validation, health check | ✅ Complete |
 | **2** | Auth, owner allowlist, migrations, Row Level Security | ✅ Complete |
-| **3** | Tasks, recurrence engine, action log, redaction | 🟡 **Partial — this commit** |
-| 4 | Memory system: suggest, confirm, hybrid search, versions | ⬜ Not started |
+| **3** | Tasks, recurrence engine, action log, redaction | 🟡 Partial |
+| **4** | Memory: four layers, suggest/confirm, hybrid search, versions, export | ✅ **Complete — this commit** |
 | 5 | Gemini Live voice | ⬜ Not started |
 | 6 | Orchestrator, tool registry, permissions, approvals | ⬜ Not started |
 | 7 | Gmail + Calendar integration | ⬜ Not started |
@@ -36,7 +36,7 @@ same thing and only one of them is worth trusting.
 
 | Area | Status |
 |---|---|
-| Schema, RLS, approval claim, refresh-token guard | ✅ Executed against a real PostgreSQL 16 + pgvector database. 58 integration tests |
+| Schema, RLS, approval claim, refresh-token guard, memory retrieval | ✅ Executed against a real PostgreSQL 16 + pgvector database. 77 integration tests |
 | Owner verification, email normalisation, env contract, timezone handling | ✅ 35 unit tests; SQL and TypeScript normalisation compared on identical input |
 | Recurrence across the Singapore day boundary, log redaction | ✅ 35 further unit tests |
 | Unauthenticated access control | ✅ 16 end-to-end checks across desktop and mobile viewports |
