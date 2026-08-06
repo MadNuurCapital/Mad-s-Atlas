@@ -1,10 +1,10 @@
-import { Mic } from 'lucide-react';
 import type { Metadata } from 'next';
 
-import { EmptyState } from '@/components/ui/EmptyState';
-import { Page } from '@/components/ui/Page';
+import { Page, Section } from '@/components/ui/Page';
+import { VoicePanel } from '@/features/voice/VoicePanel';
 
 export const metadata: Metadata = { title: 'Talk' };
+export const dynamic = 'force-dynamic';
 
 export default function TalkPage() {
   return (
@@ -12,11 +12,20 @@ export default function TalkPage() {
       title="Talk"
       description="Speak with Atlas in realtime. Push-to-talk by default — the microphone is never live in the background."
     >
-      <EmptyState
-        icon={Mic}
-        title="Voice arrives in Phase 5"
-        description="Live transcript, interruption, tool activity, sources and a text fallback will appear here. The permanent Gemini key never reaches this page — sessions use a single-use ephemeral token."
-      />
+      <Section title="Voice">
+        <VoicePanel />
+      </Section>
+
+      <Section
+        title="How this stays private"
+        description="The permanent Gemini key never reaches this page. Each session uses a single-use token that is locked to one model and expires in minutes."
+      >
+        <ul className="space-y-2 text-sm leading-relaxed text-secondary">
+          <li>· Audio goes straight from your browser to Gemini and is never stored.</li>
+          <li>· A tool call from voice takes the same approval path as one from text.</li>
+          <li>· The voice session cannot execute anything itself — it proposes, the server decides.</li>
+        </ul>
+      </Section>
     </Page>
   );
 }

@@ -18,7 +18,7 @@ ever sign in.
 | **2** | Auth, owner allowlist, migrations, Row Level Security | ✅ Complete |
 | **3** | Tasks, recurrence engine, action log, redaction | 🟡 Partial |
 | **4** | Memory: four layers, suggest/confirm, hybrid search, versions, export | ✅ **Complete — this commit** |
-| 5 | Gemini Live voice | ⬜ Not started |
+| **5** | Gemini Live voice: ephemeral tokens, session lifecycle, budgets | 🟡 **Complete pending a Gemini key — this commit** |
 | **6** | Permission engine, tool registry, approval gate | 🟡 **Core complete — this commit** |
 | 7 | Gmail + Calendar integration | ⬜ Not started |
 | 8 | Grounded current-information research | ⬜ Not started |
@@ -40,9 +40,9 @@ same thing and only one of them is worth trusting.
 | Owner verification, email normalisation, env contract, timezone handling | ✅ 35 unit tests; SQL and TypeScript normalisation compared on identical input |
 | Recurrence across the Singapore day boundary, log redaction | ✅ 35 further unit tests |
 | Permission decisions, Level 3 absence, payload hashing | ✅ 37 unit tests |
-| Unauthenticated access control | ✅ 16 end-to-end checks across desktop and mobile viewports |
+| Unauthenticated access control, secret containment | ✅ 22 end-to-end checks across desktop and mobile viewports |
 | Google OAuth against real Google | ⬜ Not yet — needs a Google Cloud OAuth client |
-| Gemini voice, research, briefings | ⬜ Not yet — needs a Gemini API key |
+| Gemini Live WebSocket transport | ⬜ Not yet — needs a Gemini API key. Token minting, permissions, budgets and teardown ARE tested |
 | Deployment to Netlify | ⬜ Not yet — needs a Supabase project and Netlify site |
 
 The local database harness is `bash scripts/local-db.sh start`. It applies every
