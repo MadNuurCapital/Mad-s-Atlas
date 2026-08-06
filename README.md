@@ -13,8 +13,8 @@ ever sign in.
 
 | Phase | Scope | State |
 |---|---|---|
-| **0** | Architecture, database design, threat model, contracts, setup guides | ✅ **Complete — this commit** |
-| 1 | Next.js foundation, design system, navigation, env validation, health check | ⬜ Not started |
+| **0** | Architecture, database design, threat model, contracts, setup guides | ✅ Complete |
+| **1** | Next.js foundation, design system, navigation, env validation, health check | ✅ **Complete — this commit** |
 | 2 | Auth, owner allowlist, migrations, Row Level Security | ⬜ Not started |
 | 3 | Profile, settings, tasks, reminders, ideas, action logs | ⬜ Not started |
 | 4 | Memory system: suggest, confirm, hybrid search, versions | ⬜ Not started |
@@ -25,10 +25,13 @@ ever sign in.
 | 9 | Daily briefing, cron, proactive features | ⬜ Not started |
 | 10 | Hardening, audit, production deployment | ⬜ Not started |
 
-**Phase 0 contains no application code by design.** No `package.json`, no
-`src/`, no migrations. The documents in this repository are the specification
-that later phases implement against — the schema is argued on paper before it
-becomes a migration that is expensive to change.
+The documents in this repository are the specification that later phases
+implement against — the schema is argued on paper before it becomes a migration
+that is expensive to change.
+
+Phases 2 onward add the database and features. The application currently runs,
+navigates and deploys, with every screen showing an honest empty state; no
+screen renders sample data dressed up as real content.
 
 ---
 
@@ -126,14 +129,22 @@ Working on the code:
 
 ---
 
-## Getting started (from Phase 1 onward)
-
-Phase 1 has not run yet, so there is nothing to install. Once it has:
+## Getting started
 
 ```bash
 cp .env.example .env.local     # then fill it in
 npm install
 npm run dev
+```
+
+Useful commands:
+
+```bash
+npm run verify        # lint + typecheck + unit tests + production build
+npm run test          # unit tests
+npm run test:e2e      # end-to-end (builds and serves the app)
+npm run lint
+npm run typecheck
 ```
 
 Before the app will do anything useful you must complete the external setup —

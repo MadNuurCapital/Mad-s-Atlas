@@ -1,0 +1,27 @@
+# Netlify configuration for Mad's Atlas (Next.js 16, App Router).
+#
+# The OpenNext adapter handles SSR, route handlers and ISR automatically.
+# Do NOT set a `publish` directory when using it.
+#
+# Security headers that never vary by environment live here. The
+# Content-Security-Policy lives in next.config.mjs so it can differ between
+# development and production.
+
+[build]
+  command = "npm run build"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+[[headers]]
+  for = "/*"
+
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "DENY"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "microphone=(self), camera=(), geolocation=(), payment=()"
+    Strict-Transport-Security = "max-age=63072000; includeSubDomains; preload"

@@ -1,0 +1,275 @@
+@import 'tailwindcss';
+
+/* ==========================================================================
+   Mad's Atlas — design tokens
+
+   A private executive operating system: premium, calm, spacious, highly
+   readable. Deep forest green and muted gold on charcoal or warm cream.
+
+   Not gaming-themed. Not cluttered. No glassmorphism for its own sake.
+   ========================================================================== */
+
+@theme {
+  /* ---- Brand ---------------------------------------------------------- */
+  --color-forest-950: #06140e;
+  --color-forest-900: #0a2018;
+  --color-forest-800: #0f2e22;
+  --color-forest-700: #16412f;
+  --color-forest-600: #1b4d38;
+  --color-forest-500: #276b4e;
+  --color-forest-400: #3d8c68;
+  --color-forest-300: #6bae8c;
+
+  --color-gold-600: #a3801c;
+  --color-gold-500: #c9a227;
+  --color-gold-400: #d9b64a;
+  --color-gold-300: #e6cd7f;
+  --color-gold-200: #f0e0ab;
+
+  --color-cream-50: #fbf8f1;
+  --color-cream-100: #f5f0e6;
+  --color-cream-200: #ebe3d2;
+  --color-cream-300: #dbcfb6;
+
+  --color-charcoal-950: #070908;
+  --color-charcoal-900: #0a0c0b;
+  --color-charcoal-850: #101413;
+  --color-charcoal-800: #161b19;
+  --color-charcoal-700: #1f2624;
+  --color-charcoal-600: #2b3432;
+
+  /* ---- Semantic status ------------------------------------------------ */
+  --color-positive: #3d8c68;
+  --color-caution: #c99027;
+  --color-critical: #b4453a;
+  --color-informative: #3f7396;
+
+  /* ---- Typography ----------------------------------------------------- */
+  --font-sans:
+    var(--font-inter), ui-sans-serif, system-ui, -apple-system, 'Segoe UI',
+    sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', 'Cascadia Code', monospace;
+
+  --text-2xs: 0.6875rem;
+
+  /* ---- Shape ---------------------------------------------------------- */
+  --radius-xs: 0.375rem;
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.25rem;
+  --radius-2xl: 1.5rem;
+
+  /* ---- Motion --------------------------------------------------------- */
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ==========================================================================
+   Surface tokens
+
+   Driven by CSS variables so light and dark swap cleanly. Dark is the default
+   look for a command centre; light is a genuine, fully-designed alternative,
+   not an afterthought.
+   ========================================================================== */
+
+:root,
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --surface-base: var(--color-charcoal-900);
+  --surface-raised: var(--color-charcoal-850);
+  --surface-overlay: var(--color-charcoal-800);
+  --surface-inset: var(--color-charcoal-950);
+  --surface-accent: var(--color-forest-800);
+
+  --border-subtle: #1e2523;
+  --border-default: #2b3432;
+  --border-strong: #3a4442;
+
+  --text-primary: #eef1ef;
+  --text-secondary: #a8b3af;
+  --text-tertiary: #71807c;
+  --text-inverse: var(--color-charcoal-900);
+
+  --accent: var(--color-gold-500);
+  --accent-hover: var(--color-gold-400);
+  --accent-muted: rgb(201 162 39 / 0.14);
+  --accent-text: var(--color-gold-300);
+
+  --focus-ring: var(--color-gold-400);
+
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.4), 0 12px 32px -16px rgb(0 0 0 / 0.6);
+  --shadow-raised: 0 2px 4px rgb(0 0 0 / 0.45), 0 24px 56px -24px rgb(0 0 0 / 0.7);
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+
+  --surface-base: var(--color-cream-100);
+  --surface-raised: var(--color-cream-50);
+  --surface-overlay: #ffffff;
+  --surface-inset: var(--color-cream-200);
+  --surface-accent: var(--color-forest-800);
+
+  --border-subtle: #e2dac9;
+  --border-default: #d3c8b1;
+  --border-strong: #b9ab8e;
+
+  --text-primary: #14201b;
+  --text-secondary: #4c5a54;
+  --text-tertiary: #74827b;
+  --text-inverse: var(--color-cream-50);
+
+  --accent: var(--color-gold-600);
+  --accent-hover: #8c6d16;
+  --accent-muted: rgb(163 128 28 / 0.12);
+  --accent-text: var(--color-gold-600);
+
+  --focus-ring: var(--color-forest-600);
+
+  --shadow-card: 0 1px 2px rgb(20 32 27 / 0.06), 0 12px 28px -18px rgb(20 32 27 / 0.22);
+  --shadow-raised: 0 2px 6px rgb(20 32 27 / 0.08), 0 24px 48px -24px rgb(20 32 27 / 0.3);
+}
+
+/* Expose the surface tokens as Tailwind utilities (bg-surface, text-primary…). */
+@theme inline {
+  --color-surface: var(--surface-base);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-overlay: var(--surface-overlay);
+  --color-surface-inset: var(--surface-inset);
+  --color-surface-accent: var(--surface-accent);
+
+  --color-line: var(--border-default);
+  --color-line-subtle: var(--border-subtle);
+  --color-line-strong: var(--border-strong);
+
+  --color-primary: var(--text-primary);
+  --color-secondary: var(--text-secondary);
+  --color-tertiary: var(--text-tertiary);
+  --color-inverse: var(--text-inverse);
+
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-muted: var(--accent-muted);
+  --color-accent-text: var(--accent-text);
+}
+
+/* ==========================================================================
+   Base
+   ========================================================================== */
+
+@layer base {
+  * {
+    border-color: var(--border-subtle);
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    /* Respect the iOS safe area so the mobile nav never sits under the home bar. */
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--surface-base);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Visible, high-contrast focus for keyboard users — never removed. */
+  :focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+    border-radius: var(--radius-xs);
+  }
+
+  /* Headings carry the weight; the palette stays calm. */
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  ::selection {
+    background-color: var(--accent-muted);
+    color: var(--text-primary);
+  }
+
+  /* Scrollbars that match the surface rather than fighting it. */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: var(--border-default);
+    border-radius: 999px;
+    border: 3px solid var(--surface-base);
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: var(--border-strong);
+  }
+}
+
+/* ==========================================================================
+   Motion — every animation is opt-out
+   ========================================================================== */
+
+@layer utilities {
+  .animate-rise {
+    animation: rise 0.42s var(--ease-out-quint) both;
+  }
+
+  .animate-pulse-soft {
+    animation: pulse-soft 2.4s ease-in-out infinite;
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse-soft {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -1,0 +1,55 @@
+{
+  "name": "mads-atlas",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Mad's Atlas — Muhammad's private personal AI operating system.",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --project unit",
+    "test:watch": "vitest --project unit",
+    "test:integration": "vitest run --project integration",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "db:types": "supabase gen types typescript --linked > src/types/database.ts",
+    "db:push": "supabase db push",
+    "seed:owner": "tsx scripts/seed-owner.ts",
+    "security:check": "tsx scripts/security-check.ts",
+    "verify": "npm run lint && npm run typecheck && npm run test && npm run build"
+  },
+  "dependencies": {
+    "@google/genai": "^2.16.0",
+    "@supabase/ssr": "^0.12.4",
+    "@supabase/supabase-js": "^2.112.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^1.28.0",
+    "next": "16.3.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "rrule": "^2.8.1",
+    "server-only": "^0.0.1",
+    "tailwind-merge": "^3.6.0",
+    "web-push": "^3.6.7",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.62.1",
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/node": "^26.1.2",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "@types/web-push": "^3.6.4",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "16.3.0",
+    "tailwindcss": "^4.3.3",
+    "tsx": "^4.23.9",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.10"
+  }
+}

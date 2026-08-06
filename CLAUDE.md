@@ -83,6 +83,15 @@ No secrets in `action_logs`. See [DATA_RETENTION.md](./DATA_RETENTION.md).
 **Language** — TypeScript strict, no `any`, no non-null assertions to silence
 the compiler. Validate every external input with Zod at the boundary.
 
+**`dangerouslySetInnerHTML`** — permitted for exactly one thing: the static
+theme bootstrap script in `app/layout.tsx`, which contains no dynamic input.
+It must never be used for email content, web results, memory content, or
+anything else derived from data.
+
+**Pinned tool versions** — ESLint is held at 9.x. ESLint 10 breaks
+`eslint-plugin-react`, which `eslint-config-next@16` bundles. Revisit when the
+Next lint stack supports 10.
+
 **Spelling** — British English in user-facing copy and documentation
 ("summarise", "organise", "initialisation"). Identifiers already fixed by the
 schema keep their documented spelling.
