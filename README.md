@@ -20,7 +20,7 @@ ever sign in.
 | **4** | Memory: four layers, suggest/confirm, hybrid search, versions, export | ✅ **Complete — this commit** |
 | **5** | Gemini Live voice: ephemeral tokens, session lifecycle, budgets | 🟡 **Complete pending a Gemini key — this commit** |
 | **6** | Permission engine, tool registry, approval gate | 🟡 **Core complete — this commit** |
-| 7 | Gmail + Calendar integration | ⬜ Not started |
+| **7** | Google: token refresh, Gmail, Calendar, tool definitions | 🟡 **Complete pending Google credentials — this commit** |
 | 8 | Grounded current-information research | ⬜ Not started |
 | 9 | Daily briefing, cron, proactive features | ⬜ Not started |
 | 10 | Hardening, audit, production deployment | ⬜ Not started |
@@ -41,7 +41,8 @@ same thing and only one of them is worth trusting.
 | Recurrence across the Singapore day boundary, log redaction | ✅ 35 further unit tests |
 | Permission decisions, Level 3 absence, payload hashing | ✅ 37 unit tests |
 | Unauthenticated access control, secret containment | ✅ 22 end-to-end checks across desktop and mobile viewports |
-| Google OAuth against real Google | ⬜ Not yet — needs a Google Cloud OAuth client |
+| Token encryption, refresh-token preservation, no-send boundary | ✅ 15 further unit tests |
+| Live Gmail / Calendar API calls | ⬜ Not yet — needs a Google OAuth client. Encryption, refresh logic and permission levels ARE tested |
 | Gemini Live WebSocket transport | ⬜ Not yet — needs a Gemini API key. Token minting, permissions, budgets and teardown ARE tested |
 | Deployment to Netlify | ⬜ Not yet — needs a Supabase project and Netlify site |
 

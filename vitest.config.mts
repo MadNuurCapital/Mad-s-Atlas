@@ -12,7 +12,12 @@ export default defineConfig({
     projects: [
       {
         resolve: {
-          alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
+          alias: {
+            '@': fileURLToPath(new URL('./src', import.meta.url)),
+            'server-only': fileURLToPath(
+              new URL('./tests/helpers/server-only-stub.ts', import.meta.url),
+            ),
+          },
         },
         test: {
           name: 'unit',
@@ -22,7 +27,12 @@ export default defineConfig({
       },
       {
         resolve: {
-          alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
+          alias: {
+            '@': fileURLToPath(new URL('./src', import.meta.url)),
+            'server-only': fileURLToPath(
+              new URL('./tests/helpers/server-only-stub.ts', import.meta.url),
+            ),
+          },
         },
         test: {
           name: 'integration',
