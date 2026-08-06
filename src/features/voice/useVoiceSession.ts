@@ -20,6 +20,12 @@ export function useVoiceSession() {
   const [state, setState] = useState<VoiceState>('idle');
   const [transcript, setTranscript] = useState<TranscriptEntry[]>([]);
   const [error, setError] = useState<string | null>(null);
+  /**
+   * Exposed so the core can visualise REAL audio. It is the same object the
+   * teardown stops, so when the microphone goes off the visual stops with it —
+   * the UI cannot show "listening" while nothing is being captured.
+   */
+  const [stream, setStream] = useState<MediaStream | null>(null);
 
   const streamRef = useRef<MediaStream | null>(null);
   /**
@@ -43,6 +49,7 @@ export function useVoiceSession() {
       track.stop();
     }
     streamRef.current = null;
+    setStream(null);
   }, []);
 
   const stop = useCallback(() => {
@@ -63,6 +70,7 @@ export function useVoiceSession() {
     try {
       stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
+      setStream(stream);
     } catch {
       setState('error');
       setError(
@@ -153,5 +161,5 @@ export function useVoiceSession() {
     startRef.current = start;
   }, [start]);
 
-  return { state, transcript, error, start, stop, setTranscript };
+  return { state, transcript, error, stream, start, stop, setTranscript };
 }

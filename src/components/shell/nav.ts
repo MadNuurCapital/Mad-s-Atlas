@@ -47,7 +47,6 @@ export const NAV_ITEMS: readonly NavItem[] = [
     href: '/calendar',
     label: 'Calendar',
     icon: CalendarDays,
-    primary: true,
     description: 'Agenda and meeting preparation',
   },
   {
@@ -102,7 +101,17 @@ export const NAV_ITEMS: readonly NavItem[] = [
   },
 ] as const;
 
+/** The four shown directly in the mobile bar. The fifth slot is "More". */
 export const PRIMARY_NAV_ITEMS = NAV_ITEMS.filter((item) => item.primary);
+
+/**
+ * Everything else, reachable on mobile through the More sheet.
+ *
+ * Six routes — Settings among them — had no mobile entry point at all before
+ * this existed. A bottom bar holds five items; that is a layout limit, not a
+ * reason to make Google connection unreachable from a phone.
+ */
+export const SECONDARY_NAV_ITEMS = NAV_ITEMS.filter((item) => !item.primary);
 
 /** Match a pathname to its nav item, tolerating nested routes. */
 export function activeNavItem(pathname: string): NavItem | undefined {

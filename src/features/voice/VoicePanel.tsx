@@ -1,77 +1,102 @@
 'use client';
 
+import { motion } from 'motion/react';
 import { Mic, MicOff, Square } from 'lucide-react';
 
+import { AtlasCore } from '@/features/voice/AtlasCore';
+import { OrbitField, type OrbitNode } from '@/features/voice/OrbitField';
 import { VOICE_STATE_LABEL } from '@/features/voice/types';
 import { useVoiceSession } from '@/features/voice/useVoiceSession';
 import { cn } from '@/lib/cn';
 
 /**
- * Voice controls.
+ * The Talk surface.
  *
- * The state indicator is load-bearing, not decoration: it shows `listening`
- * only when the microphone is genuinely capturing. Push-to-talk is the
- * default, and there is no always-on background microphone in V1.
+ * The core is the subject; controls sit underneath and stay quiet. The state
+ * line is deliberately literal — "Your microphone is off. Atlas is not
+ * listening." — because a voice interface that is ambiguous about whether it
+ * is recording is a privacy problem wearing a nice animation.
  */
-export function VoicePanel() {
-  const { state, error, start, stop } = useVoiceSession();
+export function VoicePanel({ nodes = [] }: { nodes?: OrbitNode[] }) {
+  const { state, error, stream, start, stop } = useVoiceSession();
 
   const live = state === 'listening';
   const active = state !== 'idle' && state !== 'error';
 
   return (
-    <div className="rounded-lg border border-line-subtle bg-surface-raised p-6">
-      <div className="flex items-center gap-3">
-        <span
-          aria-hidden
-          className={cn(
-            'size-2 rounded-full',
-            live ? 'animate-pulse-soft bg-critical' : active ? 'bg-caution' : 'bg-line-strong',
-          )}
-        />
-        <p className="text-sm font-medium text-primary" aria-live="polite">
-          {VOICE_STATE_LABEL[state]}
+    <div className="flex flex-col items-center">
+      <OrbitField nodes={nodes}>
+        <AtlasCore state={state} stream={stream} />
+      </OrbitField>
+
+      {/* Status. aria-live so a screen reader hears the state change too. */}
+      <motion.div
+        className="mt-2 flex flex-col items-center gap-1.5"
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ type: 'spring', stiffness: 200, damping: 24 }}
+      >
+        <div className="flex items-center gap-2">
+          <span
+            aria-hidden
+            className={cn(
+              'size-1.5 rounded-full',
+              live ? 'animate-pulse-soft bg-critical' : active ? 'bg-caution' : 'bg-line-strong',
+            )}
+          />
+          <p
+            className="text-2xs font-medium tracking-[0.14em] text-secondary uppercase"
+            aria-live="polite"
+          >
+            {VOICE_STATE_LABEL[state]}
+          </p>
+        </div>
+
+        <p className="text-sm text-tertiary">
+          {live ? 'Your microphone is on.' : 'Your microphone is off. Atlas is not listening.'}
         </p>
-      </div>
+      </motion.div>
 
-      <p className="mt-2 text-sm leading-relaxed text-tertiary">
-        {live
-          ? 'Your microphone is on. Atlas is listening.'
-          : 'Your microphone is off. Atlas is not listening.'}
-      </p>
-
-      <div className="mt-5 flex flex-wrap gap-2">
+      <div className="mt-7 flex flex-wrap justify-center gap-2">
         {active ? (
-          <button
+          <motion.button
             type="button"
             onClick={stop}
-            className="flex min-h-12 items-center gap-2 rounded-md border border-line px-5 text-sm font-medium text-secondary transition-colors hover:text-primary"
+            whileTap={{ scale: 0.97 }}
+            className="flex min-h-12 items-center gap-2 rounded-full border border-line px-6 text-sm font-medium text-secondary transition-colors hover:text-primary"
           >
             <Square aria-hidden className="size-4" />
             End session
-          </button>
+          </motion.button>
         ) : (
-          <button
+          <motion.button
             type="button"
             onClick={() => void start()}
-            className="flex min-h-12 items-center gap-2 rounded-md bg-surface-accent px-5 text-sm font-medium text-accent-text transition-colors hover:bg-forest-700"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.97 }}
+            className="flex min-h-12 items-center gap-2 rounded-full bg-surface-accent px-6 text-sm font-medium text-accent-text ring-1 ring-gold-500/25 transition-colors hover:bg-forest-700"
           >
             <Mic aria-hidden className="size-4" />
             Start voice session
-          </button>
+          </motion.button>
         )}
       </div>
 
       {error ? (
-        <p role="alert" className="mt-4 flex items-start gap-2 text-sm text-critical">
+        <motion.p
+          role="alert"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="mt-5 flex max-w-sm items-start gap-2 text-center text-sm text-critical"
+        >
           <MicOff aria-hidden className="mt-0.5 size-4 shrink-0" />
           {error}
-        </p>
+        </motion.p>
       ) : null}
 
-      <p className="mt-5 border-t border-line-subtle pt-4 text-2xs leading-relaxed text-tertiary">
-        Raw audio is never stored — not on our servers, not on disk. Transcripts
-        stay in this session unless you save them.
+      <p className="mt-8 max-w-sm text-center text-2xs leading-relaxed text-tertiary">
+        The ring responds to real audio, not a timer — if it is still, nothing is being captured.
+        Raw audio is never stored.
       </p>
     </div>
   );

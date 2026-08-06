@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
+import { MoreSheet } from '@/components/shell/MoreSheet';
 import { PRIMARY_NAV_ITEMS } from '@/components/shell/nav';
 import { cn } from '@/lib/cn';
 
@@ -42,6 +43,11 @@ export function BottomNav() {
             </li>
           );
         })}
+
+        {/* Fifth slot: everything that does not fit above. */}
+        <li>
+          <MoreSheet />
+        </li>
       </ul>
     </nav>
   );
