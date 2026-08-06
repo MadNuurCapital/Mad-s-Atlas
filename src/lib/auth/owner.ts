@@ -3,7 +3,7 @@ import 'server-only';
 import type { User } from '@supabase/supabase-js';
 import { redirect } from 'next/navigation';
 
-import { emailsMatch } from '@/lib/auth/normalise-email';
+import { emailsMatch, normaliseEmail } from '@/lib/auth/normalise-email';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
 import { serverEnv } from '@/lib/validation/env';
@@ -46,13 +46,22 @@ export async function isOwner(user: User | null): Promise<boolean> {
 
   // The configured address matching is not sufficient on its own: access can
   // be revoked by disabling the allowlist row without redeploying.
+  //
+  // The lookup MUST use the normalised address. The allowlist stores emails
+  // normalised — private.normalise_email() strips Gmail dots and +aliases, and
+  // seed-owner.ts writes that form — so querying with the raw address Google
+  // returned ("evo.inub@gmail.com" against a stored "evoinub@gmail.com") finds
+  // nothing and locks the real owner out of their own application.
+  const lookupEmail = normaliseEmail(user.email);
+  if (!lookupEmail) return false;
+
   try {
     const admin = createAdminClient();
     const { data, error } = await admin
       .schema('private')
       .from('allowed_users')
       .select('enabled')
-      .eq('email', user.email)
+      .eq('email', lookupEmail)
       .maybeSingle();
 
     if (error) {

@@ -12,6 +12,8 @@
 
 import { createClient } from '@supabase/supabase-js';
 
+import { normaliseEmail } from '../src/lib/auth/normalise-email';
+
 function fail(message: string): never {
   console.error(`\n  ✗ ${message}\n`);
   process.exit(1);
@@ -38,10 +40,16 @@ async function main(): Promise<void> {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 
+  // Store the NORMALISED form. The auth hook normalises the incoming address
+  // before comparing, and isOwner() normalises before looking it up, so a raw
+  // address written here would never match and would lock the owner out.
+  const storedEmail = normaliseEmail(ownerEmail);
+  if (!storedEmail) fail('ATLAS_OWNER_EMAIL could not be normalised.');
+
   const { error } = await supabase
     .schema('private')
     .from('allowed_users')
-    .upsert({ email: ownerEmail, enabled: true }, { onConflict: 'email' });
+    .upsert({ email: storedEmail, enabled: true }, { onConflict: 'email' });
 
   if (error) {
     // Print the code, never the payload — the payload contains the address.
