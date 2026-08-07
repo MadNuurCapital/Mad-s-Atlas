@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 
 import { isOwner } from '@/lib/auth/owner';
 import { storeGoogleTokens } from '@/lib/google/store-tokens';
+import { GOOGLE_OAUTH_SCOPES } from '@/lib/google/scopes';
 import { createClient } from '@/lib/supabase/server';
 import { publicEnv } from '@/lib/validation/env';
 
@@ -29,12 +30,13 @@ export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get('code');
   const oauthError = searchParams.get('error');
+  const next = safeNext(searchParams.get('next'));
 
   const appUrl = safeOrigin(origin);
 
   // The user declined consent, or Google refused.
   if (oauthError) {
-    return NextResponse.redirect(`${appUrl}/sign-in?error=declined`);
+    return NextResponse.redirect(`${appUrl}${next === '/today' ? '/sign-in?error=declined' : '/settings?google=declined'}`);
   }
 
   if (!code) {
@@ -67,6 +69,10 @@ export async function GET(request: NextRequest) {
       accessToken: data.session.provider_token ?? null,
       refreshToken: data.session.provider_refresh_token ?? null,
       expiresIn: data.session.expires_in ?? null,
+      // Google can grant scopes granularly, and each API call still handles a
+      // 403 precisely. Supabase does not expose the provider's returned scope
+      // string, so record the consent set requested by this flow.
+      grantedScopes: data.session.provider_token ? [...GOOGLE_OAUTH_SCOPES] : [],
     });
   } catch (storeError) {
     console.error('[auth/callback] failed to store Google tokens', {
@@ -74,7 +80,12 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  return NextResponse.redirect(`${appUrl}/today`);
+  return NextResponse.redirect(`${appUrl}${next}`);
+}
+
+function safeNext(value: string | null): string {
+  if (value === '/settings?google=connected') return value;
+  return '/today';
 }
 
 /**

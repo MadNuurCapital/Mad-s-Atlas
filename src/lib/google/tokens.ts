@@ -24,6 +24,8 @@ type StoredAccount = {
   encrypted_refresh_token: string | null;
   token_initialisation_vector: string | null;
   token_authentication_tag: string | null;
+  refresh_token_initialisation_vector: string | null;
+  refresh_token_authentication_tag: string | null;
   access_token_expires_at: string | null;
   connection_status: string;
 };
@@ -55,7 +57,8 @@ export async function getGoogleAccessToken(userId: string): Promise<GoogleAccess
     .from('connected_accounts')
     .select(
       'id,encrypted_access_token,encrypted_refresh_token,token_initialisation_vector,' +
-        'token_authentication_tag,access_token_expires_at,connection_status',
+        'token_authentication_tag,refresh_token_initialisation_vector,' +
+        'refresh_token_authentication_tag,access_token_expires_at,connection_status',
     )
     .eq('user_id', userId)
     .eq('provider', 'google')
@@ -105,8 +108,8 @@ async function refreshAccessToken(
   account: StoredAccount,
 ): Promise<GoogleAccessResult> {
   const refreshCipher = fromHex(account.encrypted_refresh_token);
-  const iv = fromHex(account.token_initialisation_vector);
-  const tag = fromHex(account.token_authentication_tag);
+  const iv = fromHex(account.refresh_token_initialisation_vector);
+  const tag = fromHex(account.refresh_token_authentication_tag);
 
   if (!refreshCipher || !iv || !tag) {
     await markNeedsReconnection(account.id, 'No stored refresh token.');
@@ -192,7 +195,10 @@ async function refreshAccessToken(
     };
 
     if (body.refresh_token) {
-      update.encrypted_refresh_token = toHex(encryptToken(body.refresh_token).ciphertext);
+      const encryptedRefresh = encryptToken(body.refresh_token);
+      update.encrypted_refresh_token = toHex(encryptedRefresh.ciphertext);
+      update.refresh_token_initialisation_vector = toHex(encryptedRefresh.iv);
+      update.refresh_token_authentication_tag = toHex(encryptedRefresh.authTag);
     }
 
     const admin = createAdminClient();

@@ -63,6 +63,7 @@ export type CreateReminderInput = {
   remindAt: string;
   recurrenceRule?: string;
   timezone?: string;
+  deliveryChannel?: 'push' | 'in_app' | 'calendar';
 };
 
 export async function createReminder(input: CreateReminderInput): Promise<Reminder> {
@@ -102,6 +103,7 @@ export async function createReminder(input: CreateReminderInput): Promise<Remind
       remind_at: input.remindAt,
       recurrence_rule: input.recurrenceRule ?? null,
       timezone,
+      delivery_channel: input.deliveryChannel ?? 'in_app',
       next_trigger_at: nextTrigger.toISOString(),
       status: 'scheduled',
     })
@@ -115,6 +117,11 @@ export async function createReminder(input: CreateReminderInput): Promise<Remind
 /** Stop a reminder firing without deleting its history. */
 export async function disableReminder(id: string): Promise<void> {
   const supabase = await createClient();
-  const { error } = await supabase.from('reminders').update({ status: 'disabled' }).eq('id', id);
-  if (error) throw new Error(`Could not disable the reminder (${error.code ?? 'unknown'})`);
+  const { data, error } = await supabase
+    .from('reminders')
+    .update({ status: 'disabled' })
+    .eq('id', id)
+    .select('id')
+    .maybeSingle();
+  if (error || !data) throw new Error(`Could not disable the reminder (${error?.code ?? 'not_found'})`);
 }

@@ -84,7 +84,8 @@ export const createReminderSchema = z.object({
   remind_at: isoTimestamp,
   recurrence_rule: recurrenceRule.nullable().optional(),
   timezone: timezone.default('Asia/Singapore'),
-  delivery_channel: z.enum(['push', 'in_app', 'calendar']).default('push'),
+  // In-app is the honest default until a browser push subscription exists.
+  delivery_channel: z.enum(['push', 'in_app', 'calendar']).default('in_app'),
   related_task_id: z.uuid().nullable().optional(),
 });
 

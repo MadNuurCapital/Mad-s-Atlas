@@ -9,8 +9,10 @@ import {
   createLiveSetupMessage,
   createLiveWebSocketUrl,
   createRealtimeAudioMessage,
+  createToolResponseMessage,
   downsampleAudio,
   floatAudioToPcm16,
+  type GeminiFunctionResponse,
   parseLiveServerMessage,
   sampleRateFromMimeType,
 } from '@/features/voice/live-protocol';
@@ -49,6 +51,7 @@ export function useVoiceSession() {
   const intentionalStopRef = useRef(false);
   const startInFlightRef = useRef(false);
   const sessionReadyRef = useRef(false);
+  const toolResponsesRef = useRef(new Map<string, GeminiFunctionResponse>());
 
   const audioPipelineRef = useRef<AudioPipeline | null>(null);
   const playbackSourcesRef = useRef(new Set<AudioBufferSourceNode>());
@@ -114,6 +117,49 @@ export function useVoiceSession() {
       ];
     });
   }, []);
+
+  const runToolCalls = useCallback(
+    async (
+      calls: Array<{ id?: string; name?: string; args?: Record<string, unknown> }>,
+      socket: WebSocket,
+    ) => {
+      setState('using_tool');
+
+      const responses = await Promise.all(
+        calls.map(async (call): Promise<GeminiFunctionResponse> => {
+          const id = call.id ?? crypto.randomUUID();
+          const name = call.name ?? 'unknown';
+          const cached = toolResponsesRef.current.get(id);
+          if (cached) return cached;
+
+          let response: Record<string, unknown>;
+          try {
+            const result = await fetch('/api/atlas/tool', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ callId: id, toolName: name, arguments: call.args ?? {} }),
+            });
+            const body = (await result.json().catch(() => null)) as Record<string, unknown> | null;
+            response = result.ok
+              ? { output: body ?? { ok: true } }
+              : { error: typeof body?.error === 'string' ? body.error : 'Atlas could not use that tool.' };
+          } catch {
+            response = { error: 'Atlas could not reach its tool service. Nothing was retried.' };
+          }
+
+          const completed = { id, name, response };
+          toolResponsesRef.current.set(id, completed);
+          return completed;
+        }),
+      );
+
+      if (socketRef.current === socket && socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify(createToolResponseMessage(responses)));
+        setState('understanding');
+      }
+    },
+    [],
+  );
 
   const playPcmAudio = useCallback((base64: string, mimeType?: string) => {
     const context = audioPipelineRef.current?.context;
@@ -182,6 +228,7 @@ export function useVoiceSession() {
     credentialsRef.current = null;
     resumeHandleRef.current = null;
     reconnectAttemptsRef.current = 0;
+    toolResponsesRef.current.clear();
 
     if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
     reconnectTimerRef.current = null;
@@ -239,6 +286,11 @@ export function useVoiceSession() {
         const resumption = message.sessionResumptionUpdate;
         if (resumption?.resumable && resumption.newHandle) {
           resumeHandleRef.current = resumption.newHandle;
+        }
+
+        const functionCalls = message.toolCall?.functionCalls;
+        if (functionCalls?.length) {
+          await runToolCalls(functionCalls, socket);
         }
 
         const content = message.serverContent;
@@ -320,7 +372,7 @@ export function useVoiceSession() {
         sessionReadyRef.current = false;
       });
     },
-    [appendTranscript, clearPlayback, finishStreamingTranscript, playPcmAudio, releaseAudio],
+    [appendTranscript, clearPlayback, finishStreamingTranscript, playPcmAudio, releaseAudio, runToolCalls],
   );
 
   useEffect(() => {
@@ -333,6 +385,7 @@ export function useVoiceSession() {
     intentionalStopRef.current = false;
     reconnectAttemptsRef.current = 0;
     resumeHandleRef.current = null;
+    toolResponsesRef.current.clear();
     setError(null);
     setTranscript([]);
 

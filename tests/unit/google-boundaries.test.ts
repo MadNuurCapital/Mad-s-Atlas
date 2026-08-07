@@ -43,18 +43,26 @@ describe('email sending is structurally impossible', () => {
   });
 
   it('the requested OAuth scopes exclude gmail.send', () => {
-    const source = readFileSync('src/features/auth/SignInButton.tsx', 'utf8');
-
-    // Inspect the SCOPES array only. Scanning the whole file would trip on the
-    // comment that explains WHY gmail.send is absent — and deleting that
-    // comment to satisfy a test would be exactly the wrong fix.
-    const scopeBlock = source.slice(source.indexOf('const SCOPES'), source.indexOf('].join'));
+    const scopeBlock = readFileSync('src/lib/google/scopes.ts', 'utf8');
 
     expect(scopeBlock).toContain('gmail.compose');
     expect(scopeBlock).toContain('gmail.readonly');
     expect(scopeBlock).not.toContain('gmail.send');
     expect(scopeBlock).not.toContain('gmail.modify');
     expect(scopeBlock).not.toContain('drive');
+  });
+
+  it('stores independent AES-GCM envelopes for access and refresh tokens', () => {
+    const store = readFileSync('src/lib/google/store-tokens.ts', 'utf8');
+    const migration = readFileSync(
+      'supabase/migrations/20260807000012_google_token_envelopes.sql',
+      'utf8',
+    );
+
+    expect(store).toContain('refresh_token_initialisation_vector');
+    expect(store).toContain('refresh_token_authentication_tag');
+    expect(migration).toContain('refresh_token_initialisation_vector');
+    expect(migration).toContain('refresh_token_authentication_tag');
   });
 
   it('gmail.send is refused by the permission engine', () => {
@@ -76,6 +84,8 @@ describe('registered tools carry the right permission levels', () => {
 
     expect(decidePermission('calendar.list_today')).toEqual({ outcome: 'allow', level: 1 });
     expect(decidePermission('gmail.search')).toEqual({ outcome: 'allow', level: 1 });
+    expect(decidePermission('tasks.create')).toEqual({ outcome: 'allow', level: 1 });
+    expect(decidePermission('reminders.create')).toEqual({ outcome: 'allow', level: 1 });
     expect(decidePermission('calendar.execute_create')).toEqual({
       outcome: 'require_approval',
       level: 2,

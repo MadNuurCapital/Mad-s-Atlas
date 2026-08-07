@@ -2,22 +2,7 @@
 
 import { useState } from 'react';
 
-import { createClient } from '@/lib/supabase/client';
-import { publicEnv } from '@/lib/validation/env';
-
-/**
- * The Google scopes Atlas requests — the minimum practical set.
- *
- * Deliberately absent: gmail.send (sending is Level 3 and has no code path),
- * gmail.modify, any Drive scope, and Contacts. Without the send scope, sending
- * email is impossible rather than merely disabled.
- */
-const SCOPES = [
-  'https://www.googleapis.com/auth/calendar.readonly',
-  'https://www.googleapis.com/auth/calendar.events',
-  'https://www.googleapis.com/auth/gmail.readonly',
-  'https://www.googleapis.com/auth/gmail.compose',
-].join(' ');
+import { beginGoogleOAuth } from '@/features/auth/google-oauth';
 
 export function SignInButton() {
   const [pending, setPending] = useState(false);
@@ -28,24 +13,7 @@ export function SignInButton() {
     setError(null);
 
     try {
-      const supabase = createClient();
-      const { NEXT_PUBLIC_APP_URL } = publicEnv();
-
-      const { error: oauthError } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          scopes: SCOPES,
-          queryParams: {
-            // Required to receive a refresh token at all.
-            access_type: 'offline',
-            // Forces Google to issue a NEW refresh token. Without this, a
-            // re-consent usually returns none, and a first-time setup after a
-            // revoke would leave the scheduled jobs with no way to act.
-            prompt: 'consent',
-          },
-          redirectTo: `${NEXT_PUBLIC_APP_URL}/auth/callback`,
-        },
-      });
+      const { error: oauthError } = await beginGoogleOAuth('/today');
 
       if (oauthError) {
         setError('Could not start sign-in. Please try again.');
