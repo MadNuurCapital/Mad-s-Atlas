@@ -17,6 +17,7 @@ import {
 describe('Gemini Live protocol', () => {
   it('uses the constrained endpoint required by ephemeral tokens', () => {
     expect(GEMINI_LIVE_WEBSOCKET_ENDPOINT).toContain('BidiGenerateContentConstrained');
+    expect(GEMINI_LIVE_WEBSOCKET_ENDPOINT).toContain('.v1alpha.');
     expect(GEMINI_LIVE_WEBSOCKET_ENDPOINT).not.toMatch(/BidiGenerateContent$/);
 
     const url = new URL(createLiveWebSocketUrl('auth_tokens/example'));
@@ -72,12 +73,18 @@ describe('Gemini Live protocol', () => {
     });
   });
 
-  it('parses output sample rates and ignores malformed server messages', () => {
+  it('parses text and binary server messages and ignores malformed input', async () => {
     expect(sampleRateFromMimeType('audio/pcm;rate=24000')).toBe(24_000);
     expect(sampleRateFromMimeType(undefined)).toBe(24_000);
-    expect(parseLiveServerMessage('{"setupComplete":{}}')).toEqual({ setupComplete: {} });
-    expect(parseLiveServerMessage('not json')).toBeNull();
-    expect(parseLiveServerMessage(new Blob())).toBeNull();
+    expect(await parseLiveServerMessage('{"setupComplete":{}}')).toEqual({ setupComplete: {} });
+    expect(await parseLiveServerMessage(new Blob(['{"setupComplete":{}}']))).toEqual({
+      setupComplete: {},
+    });
+    expect(
+      await parseLiveServerMessage(new TextEncoder().encode('{"setupComplete":{}}').buffer),
+    ).toEqual({ setupComplete: {} });
+    expect(await parseLiveServerMessage('not json')).toBeNull();
+    expect(await parseLiveServerMessage({})).toBeNull();
   });
 
   it('resumes only an established, unexpired session and caps retries', () => {

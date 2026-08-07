@@ -76,7 +76,7 @@ token is the control.
               max session expiry:  ~30 minutes (total session lifetime)
 3  Server   log the issuance — user, model, timestamp. NEVER the token.
 4  Server   return { token, sessionConfig }
-5  Browser  open the constrained v1beta Live WSS endpoint with the token
+5  Browser  open the constrained v1alpha Live WSS endpoint with the token
 6  Session  16 kHz PCM audio in, 24 kHz PCM audio out, transcripts stream to the UI
 7  Tools    intents route BACK to the server for validate → decide → execute.
             The Live session cannot execute anything itself.
@@ -106,12 +106,12 @@ beyond what the user needs.
 
 ### Implementation note
 
-Token provisioning currently uses the SDK's `v1alpha` auth-token service. Raw
-browser connections use the constrained `v1beta` endpoint:
+Token provisioning and raw ephemeral-token browser connections currently use
+the SDK-compatible constrained `v1alpha` endpoint:
 
 ```
 wss://generativelanguage.googleapis.com/ws/
-google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContentConstrained
+google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContentConstrained
 ```
 
 Do not substitute the ordinary `BidiGenerateContent` endpoint when sending an
