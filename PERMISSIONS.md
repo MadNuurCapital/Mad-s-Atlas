@@ -88,9 +88,8 @@ exist; a tool present here has exactly the level shown.
 | `calendar.get_event` | 1 | One event's detail |
 | `calendar.find_availability` | 1 | Free slots |
 | `calendar.prepare_meeting` | 1 | Meeting brief from memory, mail and history |
-| `calendar.propose_create` | 2 | Create an approval to add an event |
-| `calendar.execute_create` | 2 | Execute an approved creation |
-| `calendar.propose_update` | 2 | Create an approval to change an event |
+| `calendar.execute_create` | 1 | Create an event immediately when Muhammad requests it |
+| `calendar.propose_update` | 2 | Reserved; calendar updates are not currently implemented |
 | `calendar.execute_update` | 2 | Execute an approved change |
 | `calendar.propose_delete` | 2 | Propose only — **no execute counterpart in V1** |
 

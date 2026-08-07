@@ -18,7 +18,7 @@ Exactly these, and nothing more:
 | `email` | Owner verification |
 | `profile` | Display name and avatar |
 | `https://www.googleapis.com/auth/calendar.readonly` | Read the calendar |
-| `https://www.googleapis.com/auth/calendar.events` | Create and update events, after approval |
+| `https://www.googleapis.com/auth/calendar.events` | Create events when Muhammad explicitly requests them |
 | `https://www.googleapis.com/auth/gmail.readonly` | Search, read and summarise mail |
 | `https://www.googleapis.com/auth/gmail.compose` | Create drafts — **compose does not send** |
 

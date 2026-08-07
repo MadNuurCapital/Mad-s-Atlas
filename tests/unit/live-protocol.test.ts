@@ -53,9 +53,16 @@ describe('Gemini Live protocol', () => {
         'reminders.list',
         'reminders.create',
         'calendar.list_today',
+        'calendar.execute_create',
+        'memory.search',
+        'memory.remember',
         'gmail.search',
       ]),
     );
+    expect(message.setup.systemInstruction.parts[0]?.text).toContain(
+      'Calendar events are created immediately',
+    );
+    expect(message.setup.systemInstruction.parts[0]?.text).toContain('memory.search');
   });
 
   it('matches Gemini tool responses to their original function calls', () => {

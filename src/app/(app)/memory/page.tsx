@@ -37,7 +37,7 @@ export default async function MemoryPage({
       title="Memory"
       description={
         counts.confirmed === 0
-          ? 'Nothing remembered yet. Nothing becomes permanent without your confirmation.'
+          ? 'Nothing remembered yet. Atlas can remember stable facts and plans from your conversations.'
           : `${counts.confirmed} confirmed${counts.suggested > 0 ? ` · ${counts.suggested} awaiting review` : ''}`
       }
     >

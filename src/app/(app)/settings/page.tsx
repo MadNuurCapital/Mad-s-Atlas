@@ -3,8 +3,14 @@ import type { Metadata } from 'next';
 
 import { Card, Page, Section } from '@/components/ui/Page';
 import { GoogleConnectionPanel } from '@/features/settings/GoogleConnectionPanel';
+import {
+  setDailyBriefingEnabled,
+  setMemoryEnabled,
+} from '@/features/settings/actions';
+import { SettingsToggle } from '@/features/settings/SettingsToggle';
 import { requireOwner } from '@/lib/auth/owner';
 import { listActionLogs } from '@/lib/data/action-log';
+import { getLatestBriefing } from '@/lib/data/briefings';
 import {
   getConnectionStatus,
   getProfile,
@@ -28,12 +34,13 @@ function Row({ label, value }: { label: string; value: string }) {
 export default async function SettingsPage() {
   const session = await requireOwner();
 
-  const [profile, settings, connection, stored, recentAccess] = await Promise.all([
+  const [profile, settings, connection, stored, recentAccess, latestBriefing] = await Promise.all([
     getProfile(),
     getSettings(),
     getConnectionStatus(),
     getStoredDataSummary(),
     listActionLogs({ limit: 8 }),
+    getLatestBriefing(),
   ]);
 
   return (
@@ -56,7 +63,36 @@ export default async function SettingsPage() {
           <Row label="Signed in as" value={session.email} />
           <Row label="Preferred name" value={profile?.preferred_name ?? 'not set'} />
           <Row label="Timezone" value={profile?.timezone ?? 'Asia/Singapore'} />
-          <Row label="Daily briefing" value={profile?.briefing_enabled ? 'On, 9:00 am' : 'Off'} />
+        </Card>
+      </Section>
+
+      <Section
+        title="Atlas intelligence"
+        description="Control what Atlas prepares proactively and what it remembers between conversations."
+      >
+        <Card>
+          <SettingsToggle
+            label="Daily briefing"
+            description={`Prepare your agenda, priorities and pending items every morning at ${(profile?.briefing_time ?? '09:00').slice(0, 5)} Singapore time.`}
+            enabled={Boolean(
+              profile?.briefing_enabled && settings?.proactive_briefings_enabled,
+            )}
+            action={setDailyBriefingEnabled}
+          />
+          <SettingsToggle
+            label="Memory"
+            description="Let Atlas retrieve confirmed memories and automatically remember stable facts, goals, decisions, commitments, projects and plans you agree on together."
+            enabled={Boolean(settings?.memory_enabled)}
+            action={setMemoryEnabled}
+          />
+          <Row
+            label="Latest generated briefing"
+            value={
+              latestBriefing?.generated_at
+                ? formatRelative(new Date(latestBriefing.generated_at))
+                : 'Not generated yet'
+            }
+          />
         </Card>
       </Section>
 
@@ -97,7 +133,6 @@ export default async function SettingsPage() {
 
       <Section title="Memory and retention">
         <Card>
-          <Row label="Memory" value={settings?.memory_enabled ? 'Enabled' : 'Disabled'} />
           <Row
             label="Conversation retention"
             value={`${settings?.conversation_retention_days ?? 30} days`}
