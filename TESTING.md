@@ -232,7 +232,7 @@ The 30 required scenarios. All must pass before V1 is done.
 | 8 | Text fallback works |
 | 9 | Current research returns real sources |
 | 10 | Today's calendar loads |
-| 11 | Calendar writes require approval |
+| 11 | Calendar event creation runs immediately on an authenticated owner request |
 | 12 | Gmail search works |
 | 13 | Gmail draft creation requires approval |
 | 14 | **Email sending is unavailable anywhere in the interface** |

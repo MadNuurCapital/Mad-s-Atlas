@@ -3,6 +3,8 @@ import { z } from 'zod';
 import { AtlasPermissionLevel } from '@/lib/atlas/permissions/levels';
 import { getTool, registerTool, type AtlasTool } from '@/lib/atlas/tools/registry';
 import { createReminder, disableReminder, listReminders } from '@/lib/data/reminders';
+import { listMemories } from '@/lib/data/memories';
+import { getSettings } from '@/lib/data/settings';
 import { listTasks } from '@/lib/data/tasks';
 import { createEvent, listEvents } from '@/lib/google/calendar';
 import { createDraft, searchMessages } from '@/lib/google/gmail';
@@ -229,22 +231,115 @@ const createEventSchema = z.object({
 
 const calendarExecuteCreate: AtlasTool<z.infer<typeof createEventSchema>, unknown> = {
   name: 'calendar.execute_create',
-  description: 'Create a calendar event that has been approved.',
-  permissionLevel: AtlasPermissionLevel.RequiresApproval,
+  description: 'Create a Google Calendar event immediately at the user’s request.',
+  permissionLevel: AtlasPermissionLevel.Automatic,
   inputSchema: createEventSchema,
-  describeProposal(input) {
-    return {
-      title: `Add "${input.summary}" to your calendar`,
-      summary:
-        `Creates an event from ${input.start} to ${input.end} (${input.timeZone})` +
-        (input.attendees?.length ? `, inviting ${input.attendees.length} attendee(s)` : ''),
-      affected: ['Google Calendar (primary)'],
-    };
-  },
   async execute(context, input) {
     const result = await createEvent(context.userId, input, context.signal);
     if (!result.ok) return { ok: false, errorCode: result.errorCode, message: result.message };
     return { ok: true, output: result.data, summary: `Created calendar event "${input.summary}"` };
+  },
+};
+
+/* ------------------------------------------------------------------- Memory */
+
+const memorySearchSchema = z.object({
+  query: z.string().trim().min(1).max(500),
+  limit: z.number().int().min(1).max(20).default(8),
+});
+
+const memorySearch: AtlasTool<z.infer<typeof memorySearchSchema>, unknown> = {
+  name: 'memory.search',
+  description:
+    'Search confirmed Atlas memories before answering questions about the user, their preferences, goals, people, projects, decisions, commitments, or prior plans.',
+  permissionLevel: AtlasPermissionLevel.Automatic,
+  inputSchema: memorySearchSchema,
+  async execute(_context, input) {
+    const settings = await getSettings();
+    if (settings?.memory_enabled === false) {
+      return { ok: false, errorCode: 'memory_disabled', message: 'Memory is turned off in Settings.' };
+    }
+
+    const memories = (await listMemories({ status: 'confirmed', search: input.query, limit: input.limit }))
+      .map((memory) => ({
+        id: memory.id,
+        title: memory.title,
+        content: memory.content,
+        category: memory.category,
+        sensitivity: memory.sensitivity,
+        updatedAt: memory.updated_at,
+      }));
+
+    return { ok: true, output: memories, summary: `Found ${memories.length} relevant memory item(s)` };
+  },
+};
+
+const memoryRememberSchema = z.object({
+  title: z.string().trim().min(1).max(200),
+  content: z.string().trim().min(1).max(8000),
+  category: z.enum([
+    'profile',
+    'preference',
+    'goal',
+    'routine',
+    'important_person',
+    'project',
+    'commitment',
+    'decision',
+    'idea_reference',
+  ]),
+  sensitivity: z.enum(['normal', 'personal', 'sensitive', 'highly_sensitive']).default('normal'),
+});
+
+const memoryRemember: AtlasTool<z.infer<typeof memoryRememberSchema>, unknown> = {
+  name: 'memory.remember',
+  description:
+    'Save a stable fact the user stated, or a goal, decision, commitment, project, or plan the user explicitly agreed with Atlas. Do not save guesses, credentials, authentication codes, financial account numbers, or transient small talk.',
+  permissionLevel: AtlasPermissionLevel.Automatic,
+  inputSchema: memoryRememberSchema,
+  async execute(context, input) {
+    const settings = await getSettings();
+    if (settings?.memory_enabled === false) {
+      return { ok: false, errorCode: 'memory_disabled', message: 'Memory is turned off in Settings.' };
+    }
+
+    const now = new Date().toISOString();
+    const supabase = await createClient();
+    const { data: existing } = await supabase
+      .from('memories')
+      .select('id,title,category')
+      .eq('title', input.title)
+      .eq('content', input.content)
+      .eq('status', 'confirmed')
+      .is('deleted_at', null)
+      .maybeSingle();
+
+    if (existing) {
+      return { ok: true, output: existing, summary: `Already remembered “${input.title}”` };
+    }
+
+    const { data, error } = await supabase
+      .from('memories')
+      .insert({
+        user_id: context.userId,
+        title: input.title,
+        content: input.content,
+        category: input.category,
+        sensitivity: input.sensitivity,
+        status: 'confirmed',
+        confidence: 1,
+        source_type: 'voice',
+        confirmed_at: now,
+        last_confirmed_at: now,
+      })
+      .select('id,title,category')
+      .single();
+
+    if (error || !data) {
+      return { ok: false, errorCode: error?.code ?? 'insert_failed', message: 'Atlas could not save that memory.' };
+    }
+
+    return { ok: true, output: data, summary: `Remembered “${input.title}”` };
   },
 };
 
@@ -314,6 +409,8 @@ export function registerAllTools(): void {
   registerTool(remindersList);
   registerTool(remindersCreate);
   registerTool(remindersDisable);
+  registerTool(memorySearch);
+  registerTool(memoryRemember);
   registerTool(calendarListToday);
   registerTool(calendarExecuteCreate);
   registerTool(gmailSearch);

@@ -13,6 +13,7 @@ import {
 } from '@/components/today/TodayDashboard';
 import { requireOwner } from '@/lib/auth/owner';
 import { listApprovals, partitionApprovals } from '@/lib/data/approvals';
+import { getLatestBriefing } from '@/lib/data/briefings';
 import { listReminders, bucketReminders } from '@/lib/data/reminders';
 import { getConnectionStatus, getProfile } from '@/lib/data/settings';
 import { bucketTasks, listTasks } from '@/lib/data/tasks';
@@ -73,12 +74,13 @@ export default async function TodayPage() {
   const now = new Date();
   const { user } = await requireOwner();
 
-  const [tasks, reminders, approvals, connection, profile] = await Promise.all([
+  const [tasks, reminders, approvals, connection, profile, latestBriefing] = await Promise.all([
     listTasks(),
     listReminders(),
     listApprovals(),
     getConnectionStatus(),
     getProfile(),
+    getLatestBriefing(),
   ]);
 
   const taskBuckets = bucketTasks(tasks, now);
@@ -152,7 +154,10 @@ export default async function TodayPage() {
       </div>
 
       <div className="mt-8 grid gap-5 xl:grid-cols-[minmax(0,1.55fr)_minmax(20rem,0.8fr)]">
-        <IntelligencePanel briefingEnabled={Boolean(profile?.briefing_enabled)} />
+        <IntelligencePanel
+          briefingEnabled={Boolean(profile?.briefing_enabled)}
+          briefing={latestBriefing}
+        />
         <QuickActions />
       </div>
     </div>

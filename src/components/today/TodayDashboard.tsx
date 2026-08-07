@@ -14,6 +14,8 @@ import {
 import Link from 'next/link';
 
 import { cn } from '@/lib/cn';
+import { formatRelative } from '@/lib/time';
+import type { DailyBriefing } from '@/types/database';
 
 export type TodayTimelineItem = {
   id: string;
@@ -213,7 +215,15 @@ export function AttentionGrid({ items }: { items: AttentionItem[] }) {
   );
 }
 
-export function IntelligencePanel({ briefingEnabled }: { briefingEnabled: boolean }) {
+export function IntelligencePanel({
+  briefingEnabled,
+  briefing,
+}: {
+  briefingEnabled: boolean;
+  briefing: DailyBriefing | null;
+}) {
+  const preview = briefing?.full_briefing ?? briefing?.recommended_priority;
+
   return (
     <section className="atlas-panel relative overflow-hidden rounded-3xl p-6 sm:p-7" aria-labelledby="daily-briefing">
       <div aria-hidden className="absolute top-0 right-0 h-full w-1/2 bg-[radial-gradient(circle_at_top_right,rgb(39_107_78/0.18),transparent_62%)]" />
@@ -222,15 +232,23 @@ export function IntelligencePanel({ briefingEnabled }: { briefingEnabled: boolea
           <p className="text-xs font-semibold tracking-[0.14em] text-accent-text uppercase">
             Atlas intelligence
           </p>
-          <StatusBadge>{briefingEnabled ? 'Scheduled' : 'Off'}</StatusBadge>
+          <StatusBadge>
+            {briefing
+              ? `Updated ${formatRelative(new Date(briefing.generated_at ?? briefing.updated_at))}`
+              : briefingEnabled
+                ? 'Scheduled'
+                : 'Off'}
+          </StatusBadge>
         </div>
         <h2 id="daily-briefing" className="font-display mt-5 text-3xl text-primary">
           Your daily briefing
         </h2>
         <p className="mt-3 max-w-2xl text-sm leading-relaxed text-secondary">
-          {briefingEnabled
-            ? 'No briefing has been generated yet. When scheduled jobs are running, Atlas will bring together your agenda, tasks, reminders, approvals and intelligence here.'
-            : 'Daily briefing is currently turned off. You can enable it from Settings when you want Atlas to prepare your morning.'}
+          {preview
+            ? preview
+            : briefingEnabled
+              ? 'No briefing has been generated yet. Once the scheduled job runs, Atlas will bring together your agenda, tasks, reminders, approvals and intelligence here.'
+              : 'Daily briefing is currently turned off. You can enable it from Settings when you want Atlas to prepare your morning.'}
         </p>
         <Link
           href="/settings"

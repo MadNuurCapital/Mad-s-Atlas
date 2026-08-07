@@ -130,7 +130,7 @@ These are defaults, not settings the user must find and enable:
 - Voice transcripts are session-only unless explicitly saved.
 - Full Gmail bodies are **never** persisted.
 - Email is **never** sent.
-- Sensitive memory is **never** saved without explicit confirmation.
+- Memory is user-controlled in Settings. Atlas may automatically retain user-stated facts and agreed plans, but never credentials, authentication codes or financial account numbers.
 - Personal information is never shared externally or reused for unrelated
   prompts.
 - Personal data never appears in logs.

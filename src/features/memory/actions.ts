@@ -11,10 +11,10 @@ import { formatValidationError, idSchema } from '@/lib/validation/schemas';
 /**
  * Memory server actions.
  *
- * The governing rule, from MEMORY_SYSTEM.md: **a suggestion never becomes
- * confirmed memory automatically.** Confirmation is always an explicit act by
- * Muhammad, at every sensitivity level. There is no code path here that
- * promotes a suggestion without one.
+ * Suggestions still require explicit confirmation. Direct memories created by
+ * Muhammad, including stable facts and agreed plans he asks Atlas to retain in
+ * a voice conversation, are confirmed at creation and remain visible and
+ * deletable on the Memory page.
  */
 
 export type ActionResult =

@@ -142,7 +142,7 @@ history; supersede; export; deletion; the `/memory` screen.
   blocked
 - Full-text, vector and hybrid search all return sensible results
 - Vector-search failure falls back to full-text **and says so**
-- **A suggestion never becomes confirmed automatically**
+- **Suggestions require confirmation; direct user facts and agreed plans may be remembered automatically when Memory is enabled**
 - Editing writes a version row
 - Export excludes token columns
 - Deletion removes everything in the correct order
@@ -217,7 +217,7 @@ create/update; meeting preparation; the `/inbox` and `/calendar` screens.
 - Gmail search works; **no full body is persisted**
 - Draft creation requires approval and appears in Gmail
 - **There is no code path that sends email**
-- Calendar writes require approval
+- Calendar event creation runs immediately when Muhammad requests it
 - Prompt-injection payloads in email invoke no tool
 
 ---

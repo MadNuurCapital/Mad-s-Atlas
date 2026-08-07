@@ -76,7 +76,7 @@ export const VOICE_FUNCTION_DECLARATIONS = [
   },
   {
     name: 'calendar.execute_create',
-    description: 'Propose a Google Calendar event. This creates an Atlas approval only; it never writes immediately.',
+    description: 'Create a Google Calendar event immediately when the user asks Atlas to add it.',
     parameters: {
       type: 'object',
       properties: {
@@ -88,6 +88,35 @@ export const VOICE_FUNCTION_DECLARATIONS = [
         attendees: { type: 'array', items: { type: 'string' } },
       },
       required: ['summary', 'start', 'end'],
+    },
+  },
+  {
+    name: 'memory.search',
+    description: 'Search what Atlas remembers before answering about the user or a previous plan, preference, goal, person, project, decision, or commitment.',
+    parameters: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'Concise description of the memory to retrieve.' },
+        limit: { type: 'integer', minimum: 1, maximum: 20 },
+      },
+      required: ['query'],
+    },
+  },
+  {
+    name: 'memory.remember',
+    description: 'Save a stable user fact or an explicitly agreed goal, decision, commitment, project, or plan. Never save guesses, passwords, authentication codes, or financial account numbers.',
+    parameters: {
+      type: 'object',
+      properties: {
+        title: { type: 'string', description: 'Short label for the memory.' },
+        content: { type: 'string', description: 'The exact useful fact or agreed plan, stated without speculation.' },
+        category: {
+          type: 'string',
+          enum: ['profile', 'preference', 'goal', 'routine', 'important_person', 'project', 'commitment', 'decision', 'idea_reference'],
+        },
+        sensitivity: { type: 'string', enum: ['normal', 'personal', 'sensitive', 'highly_sensitive'] },
+      },
+      required: ['title', 'content', 'category'],
     },
   },
   {

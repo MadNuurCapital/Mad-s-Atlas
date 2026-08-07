@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { hashPayload, newIdempotencyKey, payloadMatchesHash } from '@/lib/atlas/approvals/payload';
+import { registerAllTools } from '@/lib/atlas/tools/definitions';
 import { getTool } from '@/lib/atlas/tools/registry';
 import { logAction } from '@/lib/data/action-log';
 import { createAdminClient } from '@/lib/supabase/admin';
@@ -97,6 +98,11 @@ export type ExecutionOutcome =
  * records what happened either way.
  */
 export async function executeApproval(approvalId: string): Promise<ExecutionOutcome> {
+  // Approval execution is a separate server entry point from the voice tool
+  // route. Initialise the explicit registry here as well so an approval can
+  // resolve the same tool that originally created it.
+  registerAllTools();
+
   const supabase = await createClient();
   const startedAt = Date.now();
 

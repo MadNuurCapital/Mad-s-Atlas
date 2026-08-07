@@ -79,17 +79,16 @@ describe('email sending is structurally impossible', () => {
 });
 
 describe('registered tools carry the right permission levels', () => {
-  it('reads are automatic, writes require approval', () => {
+  it('calendar and internal writes are automatic while Gmail drafts require approval', () => {
     registerAllTools();
 
     expect(decidePermission('calendar.list_today')).toEqual({ outcome: 'allow', level: 1 });
     expect(decidePermission('gmail.search')).toEqual({ outcome: 'allow', level: 1 });
     expect(decidePermission('tasks.create')).toEqual({ outcome: 'allow', level: 1 });
     expect(decidePermission('reminders.create')).toEqual({ outcome: 'allow', level: 1 });
-    expect(decidePermission('calendar.execute_create')).toEqual({
-      outcome: 'require_approval',
-      level: 2,
-    });
+    expect(decidePermission('calendar.execute_create')).toEqual({ outcome: 'allow', level: 1 });
+    expect(decidePermission('memory.search')).toEqual({ outcome: 'allow', level: 1 });
+    expect(decidePermission('memory.remember')).toEqual({ outcome: 'allow', level: 1 });
     expect(decidePermission('gmail.execute_create_draft')).toEqual({
       outcome: 'require_approval',
       level: 2,
