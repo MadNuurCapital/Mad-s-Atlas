@@ -1,0 +1,99 @@
+import { describe, expect, it } from 'vitest';
+
+import {
+  base64Pcm16ToFloatAudio,
+  bytesToBase64,
+  canResumeLiveSession,
+  createLiveSetupMessage,
+  createLiveWebSocketUrl,
+  createRealtimeAudioMessage,
+  downsampleAudio,
+  floatAudioToPcm16,
+  GEMINI_LIVE_WEBSOCKET_ENDPOINT,
+  parseLiveServerMessage,
+  sampleRateFromMimeType,
+} from '@/features/voice/live-protocol';
+
+describe('Gemini Live protocol', () => {
+  it('uses the constrained endpoint required by ephemeral tokens', () => {
+    expect(GEMINI_LIVE_WEBSOCKET_ENDPOINT).toContain('BidiGenerateContentConstrained');
+    expect(GEMINI_LIVE_WEBSOCKET_ENDPOINT).not.toMatch(/BidiGenerateContent$/);
+
+    const url = new URL(createLiveWebSocketUrl('auth_tokens/example'));
+    expect(url.searchParams.get('access_token')).toBe('auth_tokens/example');
+  });
+
+  it('builds a model-locked audio setup message with transcription and resumption', () => {
+    expect(
+      createLiveSetupMessage(
+        {
+          model: 'models/gemini-3.1-flash-live-preview',
+          responseModalities: ['AUDIO'],
+          expiresAt: '2026-08-07T11:00:00.000Z',
+          newSessionExpiresAt: '2026-08-07T10:31:00.000Z',
+        },
+        'resume-handle',
+      ),
+    ).toEqual({
+      setup: {
+        model: 'models/gemini-3.1-flash-live-preview',
+        generationConfig: { responseModalities: ['AUDIO'] },
+        sessionResumption: { handle: 'resume-handle' },
+        inputAudioTranscription: {},
+        outputAudioTranscription: {},
+      },
+    });
+  });
+
+  it('downsamples and encodes little-endian signed 16-bit PCM', () => {
+    const downsampled = downsampleAudio(new Float32Array([1, 1, 0, 0, -1, -1]), 48_000, 16_000);
+    expect(downsampled[0]).toBeCloseTo(2 / 3);
+    expect(downsampled[1]).toBeCloseTo(-2 / 3);
+
+    expect([...floatAudioToPcm16(new Float32Array([-1, 0, 1]))]).toEqual([
+      0x00, 0x80, 0x00, 0x00, 0xff, 0x7f,
+    ]);
+  });
+
+  it('round-trips PCM audio and declares the required input MIME type', () => {
+    const source = new Float32Array([-0.5, 0, 0.5]);
+    const base64 = bytesToBase64(floatAudioToPcm16(source));
+    const decoded = base64Pcm16ToFloatAudio(base64);
+
+    expect([...decoded]).toEqual([
+      expect.closeTo(-0.5, 3),
+      0,
+      expect.closeTo(0.5, 3),
+    ]);
+    expect(createRealtimeAudioMessage(base64)).toEqual({
+      realtimeInput: {
+        audio: { data: base64, mimeType: 'audio/pcm;rate=16000' },
+      },
+    });
+  });
+
+  it('parses output sample rates and ignores malformed server messages', () => {
+    expect(sampleRateFromMimeType('audio/pcm;rate=24000')).toBe(24_000);
+    expect(sampleRateFromMimeType(undefined)).toBe(24_000);
+    expect(parseLiveServerMessage('{"setupComplete":{}}')).toEqual({ setupComplete: {} });
+    expect(parseLiveServerMessage('not json')).toBeNull();
+    expect(parseLiveServerMessage(new Blob())).toBeNull();
+  });
+
+  it('resumes only an established, unexpired session and caps retries', () => {
+    const base = {
+      attempts: 0,
+      expiresAt: '2026-08-07T11:00:00.000Z',
+      maxAttempts: 2,
+      now: Date.parse('2026-08-07T10:30:00.000Z'),
+      resumeHandle: 'server-issued-handle',
+    };
+
+    expect(canResumeLiveSession(base)).toBe(true);
+    expect(canResumeLiveSession({ ...base, resumeHandle: null })).toBe(false);
+    expect(canResumeLiveSession({ ...base, attempts: 2 })).toBe(false);
+    expect(
+      canResumeLiveSession({ ...base, now: Date.parse('2026-08-07T11:00:00.000Z') }),
+    ).toBe(false);
+  });
+});

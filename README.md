@@ -18,7 +18,7 @@ ever sign in.
 | **2** | Auth, owner allowlist, migrations, Row Level Security | ✅ Complete |
 | **3** | Tasks, recurrence engine, action log, redaction | 🟡 Partial |
 | **4** | Memory: four layers, suggest/confirm, hybrid search, versions, export | ✅ **Complete — this commit** |
-| **5** | Gemini Live voice: ephemeral tokens, session lifecycle, budgets | 🟡 **Complete pending a Gemini key — this commit** |
+| **5** | Gemini Live voice: ephemeral tokens, PCM audio, session lifecycle, budgets | 🟡 **Implemented; live deploy-preview verification pending** |
 | **6** | Permission engine, tool registry, approval gate | 🟡 **Core complete — this commit** |
 | **7** | Google: token refresh, Gmail, Calendar, tool definitions | 🟡 **Complete pending Google credentials — this commit** |
 | **8** | Grounded research: routing, source extraction, SSRF-safe URLs | 🟡 **Complete pending a Gemini key — this commit** |
@@ -44,8 +44,8 @@ same thing and only one of them is worth trusting.
 | Unauthenticated access control, secret containment | ✅ 22 end-to-end checks across desktop and mobile viewports |
 | Token encryption, refresh-token preservation, no-send boundary | ✅ 15 further unit tests |
 | Live Gmail / Calendar API calls | ⬜ Not yet — needs a Google OAuth client. Encryption, refresh logic and permission levels ARE tested |
-| Gemini Live WebSocket transport | ⬜ Not yet — needs a Gemini API key. Token minting, permissions, budgets and teardown ARE tested |
-| Deployment to Netlify | ⬜ Not yet — needs a Supabase project and Netlify site |
+| Gemini Live WebSocket transport | 🟡 Constrained-token protocol, 16 kHz microphone input, 24 kHz playback, transcripts, capped resumption and teardown are tested; final live conversation check is required after deploy |
+| Deployment to Netlify | ✅ Production health endpoint is live and reports complete configuration |
 
 The local database harness is `bash scripts/local-db.sh start`. It applies every
 migration to a throwaway cluster so the security properties are tested rather

@@ -162,7 +162,7 @@ async function main(): Promise<void> {
 
   if (geminiKey) {
     try {
-      const { GoogleGenAI } = await import('@google/genai');
+      const { GoogleGenAI, Modality } = await import('@google/genai');
       const ai = new GoogleGenAI({ apiKey: geminiKey });
 
       // Confirms the key works AND that the configured models actually exist.
@@ -189,7 +189,17 @@ async function main(): Promise<void> {
         config: {
           uses: 1,
           expireTime: new Date(Date.now() + 60_000).toISOString(),
-          liveConnectConstraints: { model: liveModel },
+          liveConnectConstraints: {
+            model: liveModel,
+            config: {
+              responseModalities: [Modality.AUDIO],
+              sessionResumption: {},
+              inputAudioTranscription: {},
+              outputAudioTranscription: {},
+            },
+          },
+          lockAdditionalFields: [],
+          httpOptions: { apiVersion: 'v1alpha' },
         },
       });
 

@@ -56,6 +56,11 @@ export async function checkRateLimit(options: {
     .select('id', { count: 'exact', head: true })
     .eq('user_id', options.userId)
     .eq('tool_name', options.toolName)
+    // Only completed expensive operations consume budget. Refused attempts
+    // and provider failures stay in the audit trail without extending a
+    // lockout every time the user retries.
+    .eq('operation_type', 'execute')
+    .eq('status', 'success')
     .gte('created_at', since);
 
   if (error) {

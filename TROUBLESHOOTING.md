@@ -133,13 +133,18 @@ server log records the owner-verification outcome without recording the email.
 
 Rate limit or voice budget reached. Check the usage dashboard. This is a
 deliberate control, not a bug — see [PERMISSIONS.md](./PERMISSIONS.md) § Budget
-guardrails.
+guardrails. Wait at least 60 seconds after the last successful session start.
+Do not repeatedly click Start while waiting. Refused attempts are audited but,
+in current builds, do not count as successful token issuance or extend the
+lockout.
 
 ### The WebSocket closes immediately
 
 Ephemeral tokens are single-use with a short new-session expiry. Mint the token
 **immediately before** connecting, not at page load. If the user takes a minute
-to click "start", the token has already expired.
+to click "start", the token has already expired. Also verify the browser uses
+`BidiGenerateContentConstrained`; the ordinary `BidiGenerateContent` endpoint
+rejects ephemeral tokens and can look like a reconnect storm.
 
 ### "Model not found"
 
