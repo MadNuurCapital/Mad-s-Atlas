@@ -25,6 +25,7 @@ type AudioPipeline = {
 
 const MAX_RESUME_ATTEMPTS = 2;
 const RESUME_BASE_DELAY_MS = 750;
+const SETUP_TIMEOUT_MS = 12_000;
 
 /**
  * Voice session lifecycle.
@@ -204,18 +205,30 @@ export function useVoiceSession() {
 
       const socket = new WebSocket(createLiveWebSocketUrl(credentials.token));
       socketRef.current = socket;
+      let setupTimeout: ReturnType<typeof setTimeout> | null = null;
+
+      const clearSetupTimeout = () => {
+        if (setupTimeout) clearTimeout(setupTimeout);
+        setupTimeout = null;
+      };
 
       socket.addEventListener('open', () => {
         if (socketRef.current !== socket || intentionalStopRef.current) return;
         socket.send(JSON.stringify(createLiveSetupMessage(credentials.sessionConfig, resumeHandleRef.current)));
+        setupTimeout = setTimeout(() => {
+          if (socketRef.current === socket && !sessionReadyRef.current) {
+            socket.close(4000, 'Setup acknowledgement timed out');
+          }
+        }, SETUP_TIMEOUT_MS);
       });
 
-      socket.addEventListener('message', (event) => {
+      socket.addEventListener('message', async (event) => {
         if (socketRef.current !== socket || intentionalStopRef.current) return;
-        const message = parseLiveServerMessage(event.data);
+        const message = await parseLiveServerMessage(event.data);
         if (!message) return;
 
         if (message.setupComplete) {
+          clearSetupTimeout();
           sessionReadyRef.current = true;
           if (!resuming) reconnectAttemptsRef.current = 0;
           setError(null);
@@ -260,6 +273,7 @@ export function useVoiceSession() {
       });
 
       socket.addEventListener('close', (event) => {
+        clearSetupTimeout();
         // A late event from a deliberately closed socket must never tear down
         // a newer session the user has already started.
         if (socketRef.current !== socket) return;
@@ -291,7 +305,9 @@ export function useVoiceSession() {
         releaseAudio();
         setState('error');
         setError(
-          event.code === 1008
+          event.code === 4000
+            ? 'Google did not finish the voice handshake. Verify the Live model and API access.'
+            : event.code === 1008
             ? 'Google rejected the voice configuration. Check the configured Gemini Live model.'
             : 'The voice connection closed before Atlas was ready. Try once more in a moment.',
         );

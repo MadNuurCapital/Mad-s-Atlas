@@ -8,7 +8,7 @@ import type { LiveTokenResponse } from '@/features/voice/types';
  */
 
 export const GEMINI_LIVE_WEBSOCKET_ENDPOINT =
-  'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContentConstrained';
+  'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContentConstrained';
 
 export const GEMINI_INPUT_SAMPLE_RATE = 16_000;
 export const GEMINI_OUTPUT_SAMPLE_RATE = 24_000;
@@ -166,11 +166,23 @@ export function createRealtimeAudioMessage(base64Pcm: string) {
   };
 }
 
-export function parseLiveServerMessage(data: unknown): GeminiLiveServerMessage | null {
-  if (typeof data !== 'string') return null;
+export async function parseLiveServerMessage(data: unknown): Promise<GeminiLiveServerMessage | null> {
+  let text: string;
+
+  if (typeof data === 'string') {
+    text = data;
+  } else if (data instanceof Blob) {
+    text = await data.text();
+  } else if (data instanceof ArrayBuffer) {
+    text = new TextDecoder().decode(data);
+  } else if (ArrayBuffer.isView(data)) {
+    text = new TextDecoder().decode(data);
+  } else {
+    return null;
+  }
 
   try {
-    const parsed = JSON.parse(data) as unknown;
+    const parsed = JSON.parse(text) as unknown;
     return parsed && typeof parsed === 'object' ? (parsed as GeminiLiveServerMessage) : null;
   } catch {
     return null;
