@@ -115,7 +115,7 @@ export function AtlasCore({ state, stream }: Props) {
   const ringGlow = useTransform(smooth, (v) => `0 0 ${20 + v * 50}px -8px ${tint}`);
 
   return (
-    <div className="relative grid aspect-square w-full max-w-xs place-items-center">
+    <div className="relative grid aspect-square w-full max-w-[19rem] place-items-center sm:max-w-[23rem]">
       {/* Outer field — widens with volume, so loudness reads as presence. */}
       <motion.div
         aria-hidden
@@ -131,7 +131,7 @@ export function AtlasCore({ state, stream }: Props) {
       {/* Ring */}
       <motion.div
         aria-hidden
-        className="absolute size-48 rounded-full border sm:size-56"
+        className="absolute size-52 rounded-full border sm:size-64"
         animate={{ borderColor: tint, opacity: active ? 0.9 : 0.4 }}
         transition={{ duration: 0.4 }}
         style={{ scale: ringScale, boxShadow: ringGlow }}
@@ -140,8 +140,8 @@ export function AtlasCore({ state, stream }: Props) {
       {/* Core */}
       <motion.div
         className={cn(
-          'relative grid size-28 place-items-center rounded-full sm:size-32',
-          'border border-white/10 bg-surface-raised/80 backdrop-blur-xl',
+          'relative grid size-28 place-items-center rounded-full sm:size-36',
+          'border border-accent/20 bg-surface-raised/85 backdrop-blur-xl',
         )}
         style={{
           scale: coreScale,
@@ -149,11 +149,12 @@ export function AtlasCore({ state, stream }: Props) {
         }}
       >
         <motion.span
-          className="text-2xl font-semibold tracking-tight"
+          className="font-display relative text-5xl leading-none tracking-tight"
           animate={{ color: tint }}
           transition={{ duration: 0.4 }}
         >
           A
+          <span className="absolute -top-1 -right-3 text-[0.48rem] text-accent">✦</span>
         </motion.span>
       </motion.div>
     </div>

@@ -58,7 +58,7 @@ export function OrbitField({
   });
 
   useEffect(() => {
-    if (reduceMotion) return;
+    if (reduceMotion || nodes.length === 0) return;
     const element = containerRef.current;
     if (!element) return;
 
@@ -83,12 +83,12 @@ export function OrbitField({
       window.removeEventListener('pointermove', handle);
       window.removeEventListener('pointerleave', reset);
     };
-  }, [pointerX, pointerY, reduceMotion]);
+  }, [nodes.length, pointerX, pointerY, reduceMotion]);
 
   return (
     <div
       ref={containerRef}
-      className="relative grid min-h-[26rem] w-full place-items-center py-8"
+      className="relative grid min-h-[23rem] w-full place-items-center py-4 sm:min-h-[28rem]"
       style={{ perspective: '1200px' }}
     >
       <motion.div
@@ -101,7 +101,7 @@ export function OrbitField({
         transition={{ duration: 0.35 }}
       >
         {/* Orbit paths — faint, so they suggest structure without competing. */}
-        {RING_RADIUS.map((radius, index) => (
+        {nodes.length > 0 ? RING_RADIUS.map((radius, index) => (
           <div
             key={radius}
             aria-hidden
@@ -109,7 +109,7 @@ export function OrbitField({
             style={{ width: radius * 2, height: radius * 2 }}
             data-ring={index}
           />
-        ))}
+        )) : null}
 
         {nodes.map((node) => {
           const ringNodes = nodes.filter((n) => n.ring === node.ring);

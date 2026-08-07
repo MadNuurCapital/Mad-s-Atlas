@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'motion/react';
-import { Mic, MicOff, Square } from 'lucide-react';
+import { LockKeyhole, Mic, MicOff, Square } from 'lucide-react';
 
 import { AtlasCore } from '@/features/voice/AtlasCore';
 import { OrbitField, type OrbitNode } from '@/features/voice/OrbitField';
@@ -18,20 +18,25 @@ import { cn } from '@/lib/cn';
  * is recording is a privacy problem wearing a nice animation.
  */
 export function VoicePanel({ nodes = [] }: { nodes?: OrbitNode[] }) {
-  const { state, error, stream, start, stop } = useVoiceSession();
+  const { state, error, stream, transcript, start, stop } = useVoiceSession();
 
   const live = state === 'listening';
   const active = state !== 'idle' && state !== 'error';
 
   return (
-    <div className="flex flex-col items-center">
+    <div className="flex min-h-[calc(100dvh-12rem)] flex-col items-center justify-center">
+      <div className="mb-1 flex min-h-8 items-center gap-2 rounded-full border border-line-subtle bg-surface-inset/60 px-3 text-[0.68rem] tracking-wide text-secondary">
+        <LockKeyhole aria-hidden className="size-3 text-positive" />
+        Private session
+      </div>
+
       <OrbitField nodes={nodes}>
         <AtlasCore state={state} stream={stream} />
       </OrbitField>
 
       {/* Status. aria-live so a screen reader hears the state change too. */}
       <motion.div
-        className="mt-2 flex flex-col items-center gap-1.5"
+        className="-mt-6 flex flex-col items-center gap-1.5 sm:-mt-3"
         initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ type: 'spring', stiffness: 200, damping: 24 }}
@@ -41,7 +46,7 @@ export function VoicePanel({ nodes = [] }: { nodes?: OrbitNode[] }) {
             aria-hidden
             className={cn(
               'size-1.5 rounded-full',
-              live ? 'animate-pulse-soft bg-critical' : active ? 'bg-caution' : 'bg-line-strong',
+              live ? 'animate-pulse-soft bg-positive' : active ? 'bg-caution' : 'bg-line-strong',
             )}
           />
           <p
@@ -52,8 +57,8 @@ export function VoicePanel({ nodes = [] }: { nodes?: OrbitNode[] }) {
           </p>
         </div>
 
-        <p className="text-sm text-tertiary">
-          {live ? 'Your microphone is on.' : 'Your microphone is off. Atlas is not listening.'}
+        <p className="max-w-md text-center text-sm text-tertiary">
+          {live ? 'Your microphone is on. Speak naturally.' : 'Your microphone is off. Atlas is not listening.'}
         </p>
       </motion.div>
 
@@ -63,7 +68,7 @@ export function VoicePanel({ nodes = [] }: { nodes?: OrbitNode[] }) {
             type="button"
             onClick={stop}
             whileTap={{ scale: 0.97 }}
-            className="flex min-h-12 items-center gap-2 rounded-full border border-line px-6 text-sm font-medium text-secondary transition-colors hover:text-primary"
+            className="flex min-h-14 items-center gap-2 rounded-full border border-line bg-surface-raised px-7 text-sm font-medium text-secondary shadow-[var(--shadow-card)] transition-colors hover:border-line-strong hover:text-primary"
           >
             <Square aria-hidden className="size-4" />
             End session
@@ -74,7 +79,7 @@ export function VoicePanel({ nodes = [] }: { nodes?: OrbitNode[] }) {
             onClick={() => void start()}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.97 }}
-            className="flex min-h-12 items-center gap-2 rounded-full bg-surface-accent px-6 text-sm font-medium text-accent-text ring-1 ring-gold-500/25 transition-colors hover:bg-forest-700"
+            className="flex min-h-14 items-center gap-2 rounded-full border border-accent/35 bg-surface-accent px-7 text-sm font-medium text-accent-text shadow-[0_0_34px_-14px_rgb(217_182_74/0.85)] transition-colors hover:bg-forest-700"
           >
             <Mic aria-hidden className="size-4" />
             Start voice session
@@ -94,10 +99,18 @@ export function VoicePanel({ nodes = [] }: { nodes?: OrbitNode[] }) {
         </motion.p>
       ) : null}
 
-      <p className="mt-8 max-w-sm text-center text-2xs leading-relaxed text-tertiary">
-        The ring responds to real audio, not a timer — if it is still, nothing is being captured.
-        Raw audio is never stored.
-      </p>
+      {transcript.length > 0 ? (
+        <div className="atlas-panel mt-8 w-full max-w-2xl rounded-2xl p-5" aria-label="Session transcript">
+          {transcript.slice(-3).map((entry) => (
+            <p key={entry.id} className="mb-3 last:mb-0 text-sm leading-relaxed text-secondary">
+              <span className="mr-2 text-xs font-semibold tracking-wide text-accent-text uppercase">
+                {entry.speaker === 'you' ? 'You' : 'Atlas'}
+              </span>
+              {entry.text}
+            </p>
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }

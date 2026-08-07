@@ -17,8 +17,7 @@ export type NavItem = {
   href: string;
   label: string;
   icon: LucideIcon;
-  /** Shown in the mobile bottom bar. Space is limited to five. */
-  primary?: boolean;
+  group: 'primary' | 'secondary';
   description: string;
 };
 
@@ -33,76 +32,83 @@ export const NAV_ITEMS: readonly NavItem[] = [
     href: '/today',
     label: 'Today',
     icon: Sun,
-    primary: true,
+    group: 'primary',
     description: 'Your day at a glance',
   },
   {
     href: '/talk',
     label: 'Talk',
     icon: Mic,
-    primary: true,
+    group: 'primary',
     description: 'Speak with Atlas',
-  },
-  {
-    href: '/calendar',
-    label: 'Calendar',
-    icon: CalendarDays,
-    description: 'Agenda and meeting preparation',
-  },
-  {
-    href: '/inbox',
-    label: 'Inbox',
-    icon: Inbox,
-    description: 'Important and action-required email',
   },
   {
     href: '/tasks',
     label: 'Tasks',
     icon: CheckSquare,
-    primary: true,
+    group: 'primary',
     description: 'What needs doing',
   },
   {
-    href: '/reminders',
-    label: 'Reminders',
-    icon: BellRing,
-    description: 'One-off and recurring',
+    href: '/calendar',
+    label: 'Calendar',
+    icon: CalendarDays,
+    group: 'primary',
+    description: 'Agenda and meeting preparation',
   },
   {
     href: '/memory',
     label: 'Memory',
     icon: Sparkles,
+    group: 'primary',
     description: 'What Atlas remembers',
+  },
+  {
+    href: '/inbox',
+    label: 'Inbox',
+    icon: Inbox,
+    group: 'secondary',
+    description: 'Important and action-required email',
+  },
+  {
+    href: '/reminders',
+    label: 'Reminders',
+    icon: BellRing,
+    group: 'secondary',
+    description: 'One-off and recurring',
   },
   {
     href: '/ideas',
     label: 'Ideas',
     icon: Lightbulb,
+    group: 'secondary',
     description: 'Captured thinking',
   },
   {
     href: '/approvals',
     label: 'Approvals',
     icon: ShieldCheck,
-    primary: true,
+    group: 'secondary',
     description: 'Actions awaiting your decision',
   },
   {
     href: '/history',
     label: 'History',
     icon: Clock,
+    group: 'secondary',
     description: 'What Atlas has done',
   },
   {
     href: '/settings',
     label: 'Settings',
     icon: Settings,
+    group: 'secondary',
     description: 'Profile, privacy and connections',
   },
 ] as const;
 
 /** The four shown directly in the mobile bar. The fifth slot is "More". */
-export const PRIMARY_NAV_ITEMS = NAV_ITEMS.filter((item) => item.primary);
+export const PRIMARY_NAV_ITEMS = NAV_ITEMS.filter((item) => item.group === 'primary');
 
 /**
  * Everything else, reachable on mobile through the More sheet.
@@ -111,7 +117,20 @@ export const PRIMARY_NAV_ITEMS = NAV_ITEMS.filter((item) => item.primary);
  * this existed. A bottom bar holds five items; that is a layout limit, not a
  * reason to make Google connection unreachable from a phone.
  */
-export const SECONDARY_NAV_ITEMS = NAV_ITEMS.filter((item) => !item.primary);
+export const SECONDARY_NAV_ITEMS = NAV_ITEMS.filter((item) => item.group === 'secondary');
+
+/** Mobile keeps Talk centred and leaves Memory in the fully accessible More sheet. */
+export const MOBILE_NAV_ITEMS = [
+  '/today',
+  '/tasks',
+  '/talk',
+  '/calendar',
+].flatMap((href) => NAV_ITEMS.filter((item) => item.href === href));
+
+export const MOBILE_MORE_ITEMS = [
+  ...NAV_ITEMS.filter((item) => item.href === '/memory'),
+  ...SECONDARY_NAV_ITEMS,
+];
 
 /** Match a pathname to its nav item, tolerating nested routes. */
 export function activeNavItem(pathname: string): NavItem | undefined {

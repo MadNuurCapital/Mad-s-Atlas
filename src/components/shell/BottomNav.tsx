@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 import { MoreSheet } from '@/components/shell/MoreSheet';
-import { PRIMARY_NAV_ITEMS } from '@/components/shell/nav';
+import { MOBILE_NAV_ITEMS } from '@/components/shell/nav';
 import { cn } from '@/lib/cn';
 
 /**
@@ -19,13 +19,14 @@ export function BottomNav() {
   return (
     <nav
       aria-label="Main"
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-line-subtle bg-surface-raised/95 backdrop-blur-sm lg:hidden"
+      className="fixed inset-x-0 bottom-0 z-40 border-t border-line-subtle bg-surface-inset/92 shadow-[0_-20px_50px_-30px_rgb(0_0_0/0.9)] backdrop-blur-xl lg:hidden"
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
       <ul className="grid grid-cols-5">
-        {PRIMARY_NAV_ITEMS.map((item) => {
+        {MOBILE_NAV_ITEMS.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
           const Icon = item.icon;
+          const isTalk = item.href === '/talk';
 
           return (
             <li key={item.href}>
@@ -33,11 +34,20 @@ export function BottomNav() {
                 href={item.href}
                 aria-current={isActive ? 'page' : undefined}
                 className={cn(
-                  'flex min-h-14 flex-col items-center justify-center gap-1 px-1 py-2 transition-colors',
+                  'relative flex min-h-16 flex-col items-center justify-center gap-1 px-1 py-2 transition-colors',
+                  isTalk && '-mt-4',
                   isActive ? 'text-accent-text' : 'text-tertiary hover:text-secondary',
                 )}
               >
-                <Icon aria-hidden className="size-5" />
+                <span
+                  className={cn(
+                    'grid place-items-center',
+                    isTalk &&
+                      'size-12 rounded-full border border-accent/40 bg-surface-accent text-accent-text shadow-[0_0_28px_-9px_rgb(217_182_74/0.75)]',
+                  )}
+                >
+                  <Icon aria-hidden className={cn('size-5', isTalk && 'size-[1.15rem]')} />
+                </span>
                 <span className="text-2xs font-medium">{item.label}</span>
               </Link>
             </li>

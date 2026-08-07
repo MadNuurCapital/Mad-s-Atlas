@@ -18,10 +18,10 @@ export function Page({
   children: ReactNode;
 }) {
   return (
-    <div className="mx-auto w-full max-w-5xl px-5 py-8 sm:px-8 lg:py-12">
-      <header className="mb-8 flex flex-wrap items-start justify-between gap-4">
+    <div className="mx-auto w-full max-w-7xl px-5 py-7 sm:px-8 lg:px-10 lg:py-10 xl:px-12">
+      <header className="mb-8 flex flex-wrap items-start justify-between gap-4 lg:mb-10">
         <div className="min-w-0">
-          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{title}</h1>
+          <h1 className="font-display text-3xl text-primary sm:text-4xl">{title}</h1>
           {description ? (
             <p className="mt-2 max-w-2xl text-sm leading-relaxed text-secondary">{description}</p>
           ) : null}
@@ -48,7 +48,7 @@ export function Section({
     <section className={cn('mb-8', className)}>
       {title ? (
         <div className="mb-3 flex items-center gap-3">
-          <h2 className="text-2xs font-semibold tracking-[0.12em] text-tertiary uppercase">
+          <h2 className="text-xs font-semibold tracking-[0.13em] text-tertiary uppercase">
             {title}
           </h2>
           <span aria-hidden className="h-px flex-1 bg-line-subtle" />
@@ -72,7 +72,7 @@ export function Card({
   return (
     <Component
       className={cn(
-        'rounded-lg border border-line-subtle bg-surface-raised p-5 shadow-[var(--shadow-card)]',
+        'atlas-panel rounded-2xl p-5',
         className,
       )}
     >

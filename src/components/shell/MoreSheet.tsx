@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
-import { SECONDARY_NAV_ITEMS } from '@/components/shell/nav';
+import { MOBILE_MORE_ITEMS } from '@/components/shell/nav';
 import { cn } from '@/lib/cn';
 
 /**
@@ -37,7 +37,7 @@ export function MoreSheet() {
     };
   }, [open]);
 
-  const isActive = SECONDARY_NAV_ITEMS.some(
+  const isActive = MOBILE_MORE_ITEMS.some(
     (item) => pathname === item.href || pathname.startsWith(`${item.href}/`),
   );
 
@@ -90,7 +90,7 @@ export function MoreSheet() {
             </div>
 
             <ul className="grid grid-cols-2 gap-2">
-              {SECONDARY_NAV_ITEMS.map((item) => {
+              {MOBILE_MORE_ITEMS.map((item) => {
                 const Icon = item.icon;
                 const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
 
