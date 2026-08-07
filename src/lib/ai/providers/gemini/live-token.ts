@@ -76,10 +76,16 @@ export async function createLiveToken(): Promise<LiveTokenResult> {
           model,
           config: {
             responseModalities: [Modality.AUDIO],
+            sessionResumption: {},
+            inputAudioTranscription: {},
+            outputAudioTranscription: {},
           },
         },
         // Lock the fields the browser could otherwise override.
         lockAdditionalFields: [],
+        // Ephemeral token provisioning is currently served through v1alpha;
+        // the token itself connects to the constrained v1beta Live endpoint.
+        httpOptions: { apiVersion: 'v1alpha' },
       },
     });
 

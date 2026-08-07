@@ -76,11 +76,12 @@ token is the control.
               max session expiry:  ~30 minutes (total session lifetime)
 3  Server   log the issuance — user, model, timestamp. NEVER the token.
 4  Server   return { token, sessionConfig }
-5  Browser  open WSS to Gemini Live with the token
-6  Session  audio in, audio out, transcripts stream to the UI
+5  Browser  open the constrained v1beta Live WSS endpoint with the token
+6  Session  16 kHz PCM audio in, 24 kHz PCM audio out, transcripts stream to the UI
 7  Tools    intents route BACK to the server for validate → decide → execute.
             The Live session cannot execute anything itself.
 8  Drop     ~10 minute connection lifetime → session resumption reconnects
+            with the same token and a server-issued handle (maximum two tries)
 ```
 
 ### What the endpoint must do
@@ -105,10 +106,16 @@ beyond what the user needs.
 
 ### Implementation note
 
-The exact SDK call shape for token creation must be confirmed against the
-installed `@google/genai` types at the start of Phase 5 — the surface has moved
-between SDK versions, and this document should not be trusted over the types on
-disk. Read the type definitions first, then write the endpoint.
+Token provisioning currently uses the SDK's `v1alpha` auth-token service. Raw
+browser connections use the constrained `v1beta` endpoint:
+
+```
+wss://generativelanguage.googleapis.com/ws/
+google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContentConstrained
+```
+
+Do not substitute the ordinary `BidiGenerateContent` endpoint when sending an
+ephemeral token. Google accepts ephemeral tokens only on the constrained path.
 
 ---
 
@@ -200,7 +207,8 @@ Voice is the most expensive path in the product:
 - Per-minute voice cap
 - Daily session cap
 - Maximum session length (30 minutes)
-- Token issuance is rate-limited, so a leaked page cannot mint tokens in a loop
+- Successful token issuance is rate-limited. Failed and refused attempts remain
+  audited but do not extend the user's lockout window.
 - Usage is recorded per session and shown in the dashboard
 - Reaching a limit produces a spoken, plain refusal — never a silent
   disconnection
