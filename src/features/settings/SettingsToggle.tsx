@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 
 import type { SettingsActionResult } from '@/features/settings/actions';
 import { cn } from '@/lib/cn';
@@ -19,6 +20,7 @@ export function SettingsToggle({
   const [value, setValue] = useState(enabled);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const router = useRouter();
 
   function toggle() {
     const next = !value;
@@ -29,7 +31,9 @@ export function SettingsToggle({
       if (!result.ok) {
         setValue(!next);
         setError(result.error);
+        return;
       }
+      router.refresh();
     });
   }
 

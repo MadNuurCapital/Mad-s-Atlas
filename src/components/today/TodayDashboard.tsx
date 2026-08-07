@@ -4,11 +4,11 @@ import {
   CalendarDays,
   CheckSquare,
   Clock3,
-  Inbox,
   Lightbulb,
   Mic,
   Plus,
   ShieldCheck,
+  Search,
   Sparkles,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -267,7 +267,7 @@ export function QuickActions() {
     { label: 'Add task', href: '/tasks', icon: Plus },
     { label: 'Save memory', href: '/memory', icon: Sparkles },
     { label: 'Capture idea', href: '/ideas', icon: Lightbulb },
-    { label: 'Record note', href: '/talk', icon: Mic },
+    { label: 'Start research', href: '/research', icon: Search },
   ] as const;
 
   return (
@@ -301,7 +301,6 @@ export function buildAttentionItems(input: {
   pendingApprovals: number;
   overdueTasks: number;
   dueReminders: number;
-  googleConnected: boolean;
 }): AttentionItem[] {
   return [
     {
@@ -329,11 +328,11 @@ export function buildAttentionItems(input: {
       icon: BellRing,
     },
     {
-      label: 'Inbox',
-      value: input.googleConnected ? 'Ready' : '—',
-      detail: input.googleConnected ? 'Open to review mail' : 'Google not connected',
-      href: input.googleConnected ? '/inbox' : '/settings',
-      icon: Inbox,
+      label: 'Research',
+      value: 'Ready',
+      detail: 'Grounded live intelligence',
+      href: '/research',
+      icon: Search,
     },
   ];
 }

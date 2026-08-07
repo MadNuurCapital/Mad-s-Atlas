@@ -56,6 +56,7 @@ describe('Gemini Live protocol', () => {
         'calendar.execute_create',
         'memory.search',
         'memory.remember',
+        'research.current_web',
         'gmail.search',
       ]),
     );

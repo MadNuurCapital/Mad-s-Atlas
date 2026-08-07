@@ -3,11 +3,11 @@ import {
   CalendarDays,
   CheckSquare,
   Clock,
-  Inbox,
   Lightbulb,
   Mic,
   Settings,
   ShieldCheck,
+  Search,
   Sparkles,
   Sun,
 } from 'lucide-react';
@@ -64,11 +64,11 @@ export const NAV_ITEMS: readonly NavItem[] = [
     description: 'What Atlas remembers',
   },
   {
-    href: '/inbox',
-    label: 'Inbox',
-    icon: Inbox,
+    href: '/research',
+    label: 'Research',
+    icon: Search,
     group: 'secondary',
-    description: 'Important and action-required email',
+    description: 'Grounded reports with real sources',
   },
   {
     href: '/reminders',
