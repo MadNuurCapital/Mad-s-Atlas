@@ -1,7 +1,8 @@
-import { AlertTriangle, CheckCircle2, XCircle } from 'lucide-react';
+import { XCircle } from 'lucide-react';
 import type { Metadata } from 'next';
 
 import { Card, Page, Section } from '@/components/ui/Page';
+import { GoogleConnectionPanel } from '@/features/settings/GoogleConnectionPanel';
 import { requireOwner } from '@/lib/auth/owner';
 import { listActionLogs } from '@/lib/data/action-log';
 import {
@@ -35,54 +36,18 @@ export default async function SettingsPage() {
     listActionLogs({ limit: 8 }),
   ]);
 
-  const connected = connection?.connectionStatus === 'connected';
-
   return (
     <Page title="Settings" description="Profile, connections, privacy and data controls.">
       {/* Google first: a broken connection is the most likely reason to open
           this screen, and it breaks scheduled work silently. */}
       <Section title="Google connection">
         <Card>
-          {connection ? (
-            <>
-              <div className="flex items-center gap-2">
-                {connected ? (
-                  <CheckCircle2 aria-hidden className="size-4 text-positive" />
-                ) : (
-                  <AlertTriangle aria-hidden className="size-4 text-caution" />
-                )}
-                <p className="text-sm font-medium text-primary">
-                  {connected ? 'Connected' : 'Needs reconnecting'}
-                </p>
-              </div>
-
-              <div className="mt-3">
-                <Row label="Account" value={connection.email} />
-                <Row label="Permissions granted" value={String(connection.grantedScopes.length)} />
-                <Row
-                  label="Last renewed"
-                  value={
-                    connection.lastRefreshedAt
-                      ? formatRelative(new Date(connection.lastRefreshedAt))
-                      : 'never'
-                  }
-                />
-              </div>
-
-              {!connected ? (
-                <p className="mt-4 rounded-md bg-accent-muted px-3 py-2.5 text-sm leading-relaxed text-secondary">
-                  Calendar and email are unavailable until you reconnect. If this recurs roughly
-                  weekly, your Google OAuth app is still in Testing status — publish it to
-                  Production and the refresh token stops expiring.
-                </p>
-              ) : null}
-            </>
-          ) : (
-            <p className="text-sm leading-relaxed text-tertiary">
-              Google is not connected. Calendar and email are unavailable, and the daily briefing
-              will say so rather than appear complete.
+          <GoogleConnectionPanel connection={connection} />
+          {connection?.lastRefreshedAt ? (
+            <p className="mt-4 text-2xs text-tertiary">
+              Last renewed {formatRelative(new Date(connection.lastRefreshedAt))}
             </p>
-          )}
+          ) : null}
         </Card>
       </Section>
 

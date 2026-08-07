@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Card, Page, Section } from '@/components/ui/Page';
+import { AddReminder } from '@/features/reminders/AddReminder';
 import { bucketReminders, listReminders } from '@/lib/data/reminders';
 import { describeRecurrence } from '@/lib/scheduling/recurrence';
 import { formatDateTime } from '@/lib/time';
@@ -44,6 +45,7 @@ export default async function RemindersPage() {
   if (reminders.length === 0) {
     return (
       <Page title="Reminders" description="One-off and recurring, in your own timezone.">
+        <AddReminder />
         <EmptyState
           icon={BellRing}
           title="No reminders set"
@@ -65,6 +67,7 @@ export default async function RemindersPage() {
       title="Reminders"
       description={`${reminders.length} reminder${reminders.length === 1 ? '' : 's'}, shown in the timezone each was set in.`}
     >
+      <AddReminder />
       {sections.map(([label, items]) =>
         items.length === 0 ? null : (
           <Section key={label} title={label}>

@@ -7,6 +7,7 @@ import {
   createLiveSetupMessage,
   createLiveWebSocketUrl,
   createRealtimeAudioMessage,
+  createToolResponseMessage,
   downsampleAudio,
   floatAudioToPcm16,
   GEMINI_LIVE_WEBSOCKET_ENDPOINT,
@@ -25,8 +26,7 @@ describe('Gemini Live protocol', () => {
   });
 
   it('builds a model-locked audio setup message with transcription and resumption', () => {
-    expect(
-      createLiveSetupMessage(
+    const message = createLiveSetupMessage(
         {
           model: 'models/gemini-3.1-flash-live-preview',
           responseModalities: ['AUDIO'],
@@ -34,14 +34,40 @@ describe('Gemini Live protocol', () => {
           newSessionExpiresAt: '2026-08-07T10:31:00.000Z',
         },
         'resume-handle',
-      ),
-    ).toEqual({
+      );
+
+    expect(message).toMatchObject({
       setup: {
         model: 'models/gemini-3.1-flash-live-preview',
         generationConfig: { responseModalities: ['AUDIO'] },
         sessionResumption: { handle: 'resume-handle' },
         inputAudioTranscription: {},
         outputAudioTranscription: {},
+      },
+    });
+    expect(message.setup.systemInstruction.parts[0]?.text).toContain('Never claim an action succeeded');
+    expect(message.setup.tools[0]?.functionDeclarations.map((tool) => tool.name)).toEqual(
+      expect.arrayContaining([
+        'tasks.list',
+        'tasks.create',
+        'reminders.list',
+        'reminders.create',
+        'calendar.list_today',
+        'gmail.search',
+      ]),
+    );
+  });
+
+  it('matches Gemini tool responses to their original function calls', () => {
+    expect(
+      createToolResponseMessage([
+        { id: 'call-1', name: 'tasks.list', response: { output: { ok: true } } },
+      ]),
+    ).toEqual({
+      toolResponse: {
+        functionResponses: [
+          { id: 'call-1', name: 'tasks.list', response: { output: { ok: true } } },
+        ],
       },
     });
   });

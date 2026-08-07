@@ -37,7 +37,8 @@ export type StoreGoogleTokensInput = {
 export async function storeGoogleTokens(input: StoreGoogleTokensInput): Promise<void> {
   const admin = createAdminClient();
 
-  // Access token: encrypt when present. Its IV and auth tag travel with it.
+  // Each token gets its own AES-GCM envelope. An IV must never be reused, and
+  // an authentication tag only verifies the ciphertext created alongside it.
   const access = input.accessToken ? encryptToken(input.accessToken) : null;
   const refresh = input.refreshToken ? encryptToken(input.refreshToken) : null;
 
@@ -68,7 +69,12 @@ export async function storeGoogleTokens(input: StoreGoogleTokensInput): Promise<
   // The refresh token is added ONLY when we actually received one. Omitting
   // the key leaves any stored value untouched — writing null would destroy it.
   const payload = refresh
-    ? { ...base, encrypted_refresh_token: toHex(refresh.ciphertext) }
+    ? {
+        ...base,
+        encrypted_refresh_token: toHex(refresh.ciphertext),
+        refresh_token_initialisation_vector: toHex(refresh.iv),
+        refresh_token_authentication_tag: toHex(refresh.authTag),
+      }
     : base;
 
   const { error } = await admin

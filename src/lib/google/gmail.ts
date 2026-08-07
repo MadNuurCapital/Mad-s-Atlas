@@ -43,7 +43,9 @@ async function gmailFetch<T>(
   try {
     const response = await fetch(`${GMAIL_BASE}${path}`, {
       headers: { Authorization: `Bearer ${token.accessToken}` },
-      signal: signal ?? AbortSignal.timeout(20_000),
+      signal: signal
+        ? AbortSignal.any([signal, AbortSignal.timeout(20_000)])
+        : AbortSignal.timeout(20_000),
     });
 
     if (response.status === 403) {
@@ -79,10 +81,12 @@ export async function searchMessages(
   userId: string,
   query: string,
   maxResults = 10,
+  signal?: AbortSignal,
 ): Promise<GmailResult<GmailMessageSummary[]>> {
   const list = await gmailFetch<{ messages?: Array<{ id: string; threadId: string }> }>(
     userId,
     `/messages?q=${encodeURIComponent(query)}&maxResults=${Math.min(maxResults, 25)}`,
+    signal,
   );
 
   if (!list.ok) return list;
@@ -102,6 +106,7 @@ export async function searchMessages(
     }>(
       userId,
       `/messages/${id}?format=metadata&metadataHeaders=From&metadataHeaders=Subject&metadataHeaders=Date`,
+      signal,
     );
 
     if (!detail.ok) continue;
@@ -137,6 +142,7 @@ export type DraftInput = {
 export async function createDraft(
   userId: string,
   input: DraftInput,
+  signal?: AbortSignal,
 ): Promise<GmailResult<{ draftId: string }>> {
   const token = await getGoogleAccessToken(userId);
   if (!token.ok) return { ok: false, errorCode: token.reason, message: token.message };
@@ -165,7 +171,9 @@ export async function createDraft(
       body: JSON.stringify({
         message: { raw, ...(input.threadId ? { threadId: input.threadId } : {}) },
       }),
-      signal: AbortSignal.timeout(20_000),
+      signal: signal
+        ? AbortSignal.any([signal, AbortSignal.timeout(20_000)])
+        : AbortSignal.timeout(20_000),
     });
 
     if (!response.ok) {

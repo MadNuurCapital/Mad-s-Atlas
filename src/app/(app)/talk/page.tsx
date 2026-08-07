@@ -7,9 +7,10 @@ export const metadata: Metadata = { title: 'Talk' };
 export const dynamic = 'force-dynamic';
 
 const SUGGESTIONS = [
-  'What deserves my attention?',
-  'Walk me through today',
-  'Capture something for me',
+  'What tasks are due today?',
+  'Remind me tomorrow at 9 AM',
+  'What is on my calendar today?',
+  'Find unread emails from this week',
 ] as const;
 
 export default function TalkPage() {

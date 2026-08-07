@@ -81,7 +81,9 @@ async function calendarFetch<T>(
         'Content-Type': 'application/json',
         ...(init?.headers ?? {}),
       },
-      signal: AbortSignal.timeout(20_000),
+      signal: init?.signal
+        ? AbortSignal.any([init.signal, AbortSignal.timeout(20_000)])
+        : AbortSignal.timeout(20_000),
     });
 
     if (response.status === 403) {
@@ -113,6 +115,7 @@ export async function listEvents(
   timeMin: Date,
   timeMax: Date,
   timeZone = ATLAS_DEFAULT_TIMEZONE,
+  signal?: AbortSignal,
 ): Promise<CalendarResult<CalendarEvent[]>> {
   const params = new URLSearchParams({
     timeMin: timeMin.toISOString(),
@@ -128,6 +131,7 @@ export async function listEvents(
   const result = await calendarFetch<{ items?: RawEvent[] }>(
     userId,
     `/calendars/primary/events?${params.toString()}`,
+    { signal },
   );
 
   if (!result.ok) return result;
@@ -153,9 +157,11 @@ export type CreateEventInput = {
 export async function createEvent(
   userId: string,
   input: CreateEventInput,
+  signal?: AbortSignal,
 ): Promise<CalendarResult<{ eventId: string; htmlLink: string | null }>> {
   const result = await calendarFetch<RawEvent>(userId, '/calendars/primary/events', {
     method: 'POST',
+    signal,
     body: JSON.stringify({
       summary: input.summary,
       description: input.description,
