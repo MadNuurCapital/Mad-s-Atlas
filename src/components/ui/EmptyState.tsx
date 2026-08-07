@@ -19,10 +19,12 @@ export function EmptyState({
   action?: ReactNode;
 }) {
   return (
-    <div className="rounded-lg border border-dashed border-line bg-surface-raised/40 px-6 py-14 text-center">
-      <Icon aria-hidden className="mx-auto size-6 text-tertiary" />
-      <p className="mt-4 text-sm font-medium text-primary">{title}</p>
-      <p className="mx-auto mt-1.5 max-w-sm text-sm leading-relaxed text-tertiary">{description}</p>
+    <div className="atlas-panel rounded-2xl border-dashed px-6 py-12 text-center">
+      <span className="mx-auto grid size-10 place-items-center rounded-full bg-accent-muted">
+        <Icon aria-hidden className="size-[1.1rem] text-accent-text" />
+      </span>
+      <p className="mt-4 text-base font-medium text-primary">{title}</p>
+      <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-tertiary">{description}</p>
       {action ? <div className="mt-5">{action}</div> : null}
     </div>
   );

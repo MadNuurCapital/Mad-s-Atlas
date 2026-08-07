@@ -58,7 +58,7 @@ export function ThemeToggle() {
     <button
       type="button"
       onClick={toggle}
-      className="flex min-h-9 w-full items-center gap-3 rounded-md px-3 py-2 text-sm text-secondary transition-colors hover:bg-surface-overlay hover:text-primary"
+      className="flex min-h-11 w-full items-center gap-3 rounded-xl px-3 py-2 text-sm text-secondary transition-colors hover:bg-surface-overlay hover:text-primary"
     >
       {isLight ? (
         <Moon aria-hidden className="size-4 text-tertiary" />

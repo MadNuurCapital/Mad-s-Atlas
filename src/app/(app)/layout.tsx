@@ -16,12 +16,16 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   await requireOwner();
 
   return (
-    <div className="flex min-h-dvh bg-surface">
+    <div className="flex min-h-dvh bg-transparent">
       <Sidebar />
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="relative flex min-w-0 flex-1 flex-col overflow-x-clip">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute top-0 right-0 h-[34rem] w-[44rem] max-w-full bg-[radial-gradient(circle_at_top_right,rgb(39_107_78/0.14),transparent_64%)]"
+        />
         {/* Bottom nav is fixed, so reserve room for it on small screens. */}
-        <main className="flex-1 pb-20 lg:pb-0">{children}</main>
+        <main className="relative flex-1 pb-24 lg:pb-0">{children}</main>
       </div>
 
       <BottomNav />
