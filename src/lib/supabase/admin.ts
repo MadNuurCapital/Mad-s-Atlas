@@ -15,6 +15,7 @@ import type { Database } from '@/types/database';
  * Legitimate uses, and no others:
  *   • writing token columns in connected_accounts
  *   • appending to action_logs and tool_runs
+ *   • persisting server-generated research reports and their grounded sources
  *   • scheduled maintenance run from server context
  *   • scripts/seed-owner.ts
  *

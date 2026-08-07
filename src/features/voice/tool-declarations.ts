@@ -120,6 +120,17 @@ export const VOICE_FUNCTION_DECLARATIONS = [
     },
   },
   {
+    name: 'research.current_web',
+    description: 'Research a current topic using live grounded sources and save the resulting report in Research.',
+    parameters: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'The complete current-information research question.' },
+      },
+      required: ['query'],
+    },
+  },
+  {
     name: 'gmail.search',
     description: 'Search Gmail and return metadata plus short snippets, never full message bodies.',
     parameters: {

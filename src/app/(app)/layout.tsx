@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { BottomNav } from '@/components/shell/BottomNav';
 import { Sidebar } from '@/components/shell/Sidebar';
 import { requireOwner } from '@/lib/auth/owner';
+import { getProfile } from '@/lib/data/settings';
 
 /**
  * Authenticated application shell.
@@ -14,10 +15,12 @@ import { requireOwner } from '@/lib/auth/owner';
  */
 export default async function AppLayout({ children }: { children: ReactNode }) {
   await requireOwner();
+  const profile = await getProfile();
+  const preferredName = profile?.preferred_name ?? 'Mad';
 
   return (
     <div className="flex min-h-dvh bg-transparent">
-      <Sidebar />
+      <Sidebar preferredName={preferredName} />
 
       <div className="relative flex min-w-0 flex-1 flex-col overflow-x-clip">
         <div

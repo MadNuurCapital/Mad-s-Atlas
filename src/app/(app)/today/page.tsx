@@ -119,7 +119,6 @@ export default async function TodayPage() {
     pendingApprovals: approvalBuckets.pending.length,
     overdueTasks: taskBuckets.overdue.length,
     dueReminders: reminderBuckets.due.length,
-    googleConnected,
   });
 
   return (
@@ -130,7 +129,7 @@ export default async function TodayPage() {
             {formatLongDate(now)} · Singapore
           </p>
           <h1 className="font-display text-[2.4rem] leading-[1.06] text-primary sm:text-5xl">
-            {greeting(now)}, Muhammad.
+            {greeting(now)}, {profile?.preferred_name ?? 'Mad'}.
           </h1>
           <p className="mt-3 text-sm text-secondary sm:text-base">
             {priority ? 'Atlas has prepared what needs your attention.' : 'Your day is calm and clear.'}

@@ -43,5 +43,6 @@ export type LiveTokenResponse = {
     responseModalities: string[];
     expiresAt: string;
     newSessionExpiresAt: string;
+    preferredName?: string;
   };
 };

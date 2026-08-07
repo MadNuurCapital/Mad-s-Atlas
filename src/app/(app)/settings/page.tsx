@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 
 import { Card, Page, Section } from '@/components/ui/Page';
 import { GoogleConnectionPanel } from '@/features/settings/GoogleConnectionPanel';
+import { ProfileEditor } from '@/features/settings/ProfileEditor';
 import {
   setDailyBriefingEnabled,
   setMemoryEnabled,
@@ -61,7 +62,7 @@ export default async function SettingsPage() {
       <Section title="Profile">
         <Card>
           <Row label="Signed in as" value={session.email} />
-          <Row label="Preferred name" value={profile?.preferred_name ?? 'not set'} />
+          <ProfileEditor preferredName={profile?.preferred_name ?? 'Mad'} />
           <Row label="Timezone" value={profile?.timezone ?? 'Asia/Singapore'} />
         </Card>
       </Section>

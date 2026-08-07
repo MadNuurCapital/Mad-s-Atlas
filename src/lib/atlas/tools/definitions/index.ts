@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { AtlasPermissionLevel } from '@/lib/atlas/permissions/levels';
+import { runAndStoreResearch } from '@/lib/atlas/research/service';
 import { getTool, registerTool, type AtlasTool } from '@/lib/atlas/tools/registry';
 import { createReminder, disableReminder, listReminders } from '@/lib/data/reminders';
 import { listMemories } from '@/lib/data/memories';
@@ -343,6 +344,39 @@ const memoryRemember: AtlasTool<z.infer<typeof memoryRememberSchema>, unknown> =
   },
 };
 
+/* ----------------------------------------------------------------- Research */
+
+const researchCurrentSchema = z.object({
+  query: z.string().trim().min(3).max(1000),
+});
+
+const researchCurrent: AtlasTool<z.infer<typeof researchCurrentSchema>, unknown> = {
+  name: 'research.current_web',
+  description:
+    'Research current information using live Google-grounded sources, save the report, and return a concise sourced summary.',
+  permissionLevel: AtlasPermissionLevel.Automatic,
+  inputSchema: researchCurrentSchema,
+  async execute(context, input) {
+    try {
+      const result = await runAndStoreResearch(context.userId, input.query);
+      return {
+        ok: true,
+        output: {
+          reportId: result.reportId,
+          summary: result.summary,
+          sources: result.sources,
+          unverified: result.unverified,
+          caveat: result.caveat,
+          researchPath: '/research',
+        },
+        summary: `Completed research with ${result.sources.length} grounded source(s)`,
+      };
+    } catch {
+      return { ok: false, errorCode: 'research_failed', message: 'Atlas could not complete that research.' };
+    }
+  },
+};
+
 /* ------------------------------------------------------------------- Gmail */
 
 const gmailSearchSchema = z.object({
@@ -411,6 +445,7 @@ export function registerAllTools(): void {
   registerTool(remindersDisable);
   registerTool(memorySearch);
   registerTool(memoryRemember);
+  registerTool(researchCurrent);
   registerTool(calendarListToday);
   registerTool(calendarExecuteCreate);
   registerTool(gmailSearch);

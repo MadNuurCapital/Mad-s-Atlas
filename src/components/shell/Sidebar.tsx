@@ -10,7 +10,7 @@ import { ThemeToggle } from '@/components/shell/ThemeToggle';
 import { cn } from '@/lib/cn';
 
 /** Desktop navigation. Hidden below `lg`, where the bottom bar takes over. */
-export function Sidebar() {
+export function Sidebar({ preferredName }: { preferredName: string }) {
   const pathname = usePathname();
 
   return (
@@ -30,13 +30,13 @@ export function Sidebar() {
         <button
           type="button"
           className="flex min-h-14 w-full items-center gap-3 rounded-xl px-2 text-left transition-colors hover:bg-surface-overlay"
-          aria-label="Muhammad's profile"
+          aria-label={`${preferredName}'s profile`}
         >
           <span className="grid size-9 shrink-0 place-items-center rounded-full border border-accent/25 bg-gradient-to-br from-gold-300/30 to-forest-700 text-sm font-medium text-primary">
-            M
+            {preferredName.slice(0, 1).toUpperCase()}
           </span>
           <span className="min-w-0 flex-1 leading-tight">
-            <span className="block truncate text-sm font-medium text-primary">Muhammad</span>
+            <span className="block truncate text-sm font-medium text-primary">{preferredName}</span>
             <span className="mt-1 flex items-center gap-1.5 text-[0.68rem] text-tertiary">
               <span aria-hidden className="size-1.5 rounded-full bg-positive" /> Atlas owner
             </span>

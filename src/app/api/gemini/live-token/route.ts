@@ -4,6 +4,7 @@ import { createLiveToken } from '@/lib/ai/providers/gemini/live-token';
 import { requireOwnerApi } from '@/lib/auth/owner';
 import { checkVoiceBudget } from '@/lib/atlas/permissions/rate-limit';
 import { logAction } from '@/lib/data/action-log';
+import { getProfile } from '@/lib/data/settings';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -50,7 +51,14 @@ export async function POST() {
   }
 
   try {
-    const result = await createLiveToken();
+    const [result, profile] = await Promise.all([createLiveToken(), getProfile()]);
+    const response = {
+      ...result,
+      sessionConfig: {
+        ...result.sessionConfig,
+        preferredName: profile?.preferred_name ?? 'Mad',
+      },
+    };
 
     // Logged BEFORE returning, so a session that starts is always accounted
     // for — this row is also what the rate limiter counts.
@@ -62,7 +70,7 @@ export async function POST() {
       metadata: { model: result.sessionConfig.model },
     });
 
-    return NextResponse.json(result, {
+    return NextResponse.json(response, {
       status: 200,
       headers: { 'Cache-Control': 'no-store, max-age=0' },
     });
