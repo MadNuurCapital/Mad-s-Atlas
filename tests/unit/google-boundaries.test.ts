@@ -86,6 +86,8 @@ describe('registered tools carry the right permission levels', () => {
     expect(decidePermission('gmail.search')).toEqual({ outcome: 'allow', level: 1 });
     expect(decidePermission('tasks.create')).toEqual({ outcome: 'allow', level: 1 });
     expect(decidePermission('reminders.create')).toEqual({ outcome: 'allow', level: 1 });
+    expect(decidePermission('ideas.list')).toEqual({ outcome: 'allow', level: 1 });
+    expect(decidePermission('ideas.capture')).toEqual({ outcome: 'allow', level: 1 });
     expect(decidePermission('calendar.execute_create')).toEqual({ outcome: 'allow', level: 1 });
     expect(decidePermission('memory.search')).toEqual({ outcome: 'allow', level: 1 });
     expect(decidePermission('memory.remember')).toEqual({ outcome: 'allow', level: 1 });
