@@ -4,6 +4,7 @@ import type { Metadata } from 'next';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Card, Page, Section } from '@/components/ui/Page';
 import { AddReminder } from '@/features/reminders/AddReminder';
+import { RemoveReminderButton } from '@/features/reminders/RemoveReminderButton';
 import { bucketReminders, listReminders } from '@/lib/data/reminders';
 import { describeRecurrence } from '@/lib/scheduling/recurrence';
 import { formatDateTime } from '@/lib/time';
@@ -17,23 +18,28 @@ function ReminderCard({ reminder }: { reminder: Reminder }) {
 
   return (
     <Card as="li">
-      <p className="text-sm font-medium text-primary">{reminder.title}</p>
-      {reminder.description ? (
-        <p className="mt-1 text-sm leading-relaxed text-tertiary">{reminder.description}</p>
-      ) : null}
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-medium text-primary">{reminder.title}</p>
+          {reminder.description ? (
+            <p className="mt-1 text-sm leading-relaxed text-tertiary">{reminder.description}</p>
+          ) : null}
 
-      <p className="mt-3 text-2xs text-secondary">
-        {formatDateTime(new Date(at), reminder.timezone)}
-        {/* The zone is always shown. A reminder set in one zone and read in
-            another is exactly where confusion starts. */}
-        <span className="text-tertiary"> · {reminder.timezone}</span>
-      </p>
+          <p className="mt-3 text-2xs text-secondary">
+            {formatDateTime(new Date(at), reminder.timezone)}
+            {/* The zone is always shown. A reminder set in one zone and read in
+                another is exactly where confusion starts. */}
+            <span className="text-tertiary"> · {reminder.timezone}</span>
+          </p>
 
-      {reminder.recurrence_rule ? (
-        <p className="mt-1 text-2xs text-accent-text">
-          {describeRecurrence(reminder.recurrence_rule)}
-        </p>
-      ) : null}
+          {reminder.recurrence_rule ? (
+            <p className="mt-1 text-2xs text-accent-text">
+              {describeRecurrence(reminder.recurrence_rule)}
+            </p>
+          ) : null}
+        </div>
+        <RemoveReminderButton id={reminder.id} title={reminder.title} />
+      </div>
     </Card>
   );
 }

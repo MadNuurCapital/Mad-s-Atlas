@@ -5,7 +5,8 @@ import { revalidatePath } from 'next/cache';
 import { requireOwner } from '@/lib/auth/owner';
 import { logAction } from '@/lib/data/action-log';
 import { createReminder } from '@/lib/data/reminders';
-import { createReminderSchema, formatValidationError } from '@/lib/validation/schemas';
+import { createClient } from '@/lib/supabase/server';
+import { createReminderSchema, formatValidationError, idSchema } from '@/lib/validation/schemas';
 
 export type ReminderActionResult =
   | { ok: true }
@@ -41,4 +42,35 @@ export async function addReminder(formData: FormData): Promise<ReminderActionRes
   } catch {
     return { ok: false, error: 'Could not save that reminder. Please try again.' };
   }
+}
+
+/** Permanently remove a reminder after the owner confirms in the UI. */
+export async function removeReminder(formData: FormData): Promise<ReminderActionResult> {
+  await requireOwner();
+
+  const parsed = idSchema.safeParse({ id: formData.get('id') });
+  if (!parsed.success) return { ok: false, error: 'That reminder could not be identified.' };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('reminders')
+    .delete()
+    .eq('id', parsed.data.id)
+    .select('id')
+    .maybeSingle();
+
+  if (error || !data) {
+    return { ok: false, error: 'Could not remove that reminder. Please try again.' };
+  }
+
+  await logAction({
+    toolName: 'reminders.remove',
+    operationType: 'execute',
+    actionSummary: 'Removed a reminder',
+    status: 'success',
+  });
+
+  revalidatePath('/reminders');
+  revalidatePath('/today');
+  return { ok: true };
 }
