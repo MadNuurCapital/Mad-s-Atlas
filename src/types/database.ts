@@ -61,6 +61,10 @@ export type MessageRole = 'user' | 'assistant' | 'system' | 'tool';
 export type ConnectionStatus = 'connected' | 'needs_reconnection' | 'revoked' | 'error';
 export type BriefingStatus = 'generating' | 'ready' | 'delivered' | 'failed';
 export type ResearchDetailLevel = 'brief' | 'standard' | 'detailed';
+export type LearningKind = 'observation' | 'inference' | 'confirmed_memory' | 'system_insight' | 'workflow' | 'decision';
+export type LearningCategory = 'facts' | 'preferences' | 'routines' | 'people' | 'projects' | 'goals' | 'decisions' | 'workflows' | 'communication' | 'research' | 'productivity' | 'system';
+export type LearningStatus = 'observed' | 'emerging' | 'suggested' | 'confirmed' | 'active' | 'retired' | 'superseded' | 'dismissed';
+export type EvolutionCategory = 'behavioral' | 'workflow' | 'performance' | 'reliability' | 'ui' | 'intelligence' | 'cost' | 'security';
 
 /* -------------------------------------------------------------------------- */
 /*  Row shapes                                                                 */
@@ -93,6 +97,100 @@ export type UserSettings = Timestamps & {
   research_detail_level: ResearchDetailLevel;
   approval_expiry_minutes: number;
   meeting_prep_lead_minutes: number;
+  learning_enabled: boolean;
+  learning_paused_until: string | null;
+  proactive_suggestions_enabled: boolean;
+  workflow_learning_enabled: boolean;
+  system_diagnostics_enabled: boolean;
+  automatic_adaptations_enabled: boolean;
+};
+
+export type LearningItem = Timestamps & {
+  id: string;
+  user_id: string;
+  kind: LearningKind;
+  category: LearningCategory;
+  canonical_key: string;
+  title: string;
+  summary: string;
+  status: LearningStatus;
+  confidence: number;
+  evidence: Json;
+  evidence_count: number;
+  source_type: string;
+  source_reference: string | null;
+  user_confirmed: boolean;
+  pinned: boolean;
+  feedback_score: number;
+  first_observed_at: string;
+  last_reinforced_at: string;
+  last_used_at: string | null;
+  expires_at: string | null;
+  superseded_by: string | null;
+  metadata: Json;
+  deleted_at: string | null;
+};
+
+export type AtlasAdaptation = Timestamps & {
+  id: string;
+  user_id: string;
+  adaptation_key: string;
+  category: EvolutionCategory;
+  title: string;
+  description: string;
+  value: Json;
+  previous_value: Json | null;
+  reason: string;
+  confidence: number;
+  evidence: Json;
+  risk_level: 'low' | 'medium' | 'high';
+  status: 'proposed' | 'active' | 'reverted' | 'dismissed';
+  applied_at: string | null;
+  reverted_at: string | null;
+};
+
+export type SystemMetric = {
+  id: string;
+  user_id: string;
+  subsystem: string;
+  metric_name: string;
+  metric_value: number;
+  unit: string;
+  sample_count: number;
+  health_status: 'healthy' | 'watch' | 'degraded';
+  window_started_at: string;
+  window_ended_at: string;
+  metadata: Json;
+  recorded_at: string;
+};
+
+export type EvolutionProposal = Timestamps & {
+  id: string;
+  user_id: string;
+  category: EvolutionCategory;
+  title: string;
+  problem: string;
+  evidence: Json;
+  confidence: number;
+  proposed_solution: string;
+  expected_benefit: string;
+  risk_level: 'low' | 'medium' | 'high';
+  affected_systems: string[];
+  test_plan: string[];
+  proposal_text: string;
+  status: 'open' | 'accepted' | 'dismissed' | 'exported';
+  dismissed_at: string | null;
+};
+
+export type LearningFeedback = {
+  id: string;
+  user_id: string;
+  learning_item_id: string | null;
+  adaptation_id: string | null;
+  feedback_type: 'useful' | 'not_useful' | 'confirm' | 'correct' | 'dismiss' | 'revert' | 'outcome_success' | 'outcome_failure';
+  source: 'ui' | 'voice' | 'text' | 'outcome' | 'system';
+  note: string | null;
+  created_at: string;
 };
 
 /**
@@ -348,6 +446,11 @@ export type Database = {
       research_reports: Table<ResearchReport>;
       research_sources: Table<ResearchSource>;
       daily_briefings: Table<DailyBriefing>;
+      learning_items: Table<LearningItem>;
+      atlas_adaptations: Table<AtlasAdaptation>;
+      system_metrics: Table<SystemMetric>;
+      evolution_proposals: Table<EvolutionProposal>;
+      learning_feedback: Table<LearningFeedback>;
       // Insert/Update are intentionally loose here: the token columns are
       // bytea, written as `\x…` hex strings by the server-side client only.
       connected_accounts: Table<Record<string, Json>, Record<string, Json>, Record<string, Json>>;
@@ -424,6 +527,8 @@ export type Database = {
       export_all_user_data: { Args: Record<string, never>; Returns: Json };
       delete_all_user_data: { Args: Record<string, never>; Returns: Json };
       is_owner: { Args: Record<string, never>; Returns: boolean };
+      reset_learning_engine: { Args: Record<string, never>; Returns: Json };
+      export_learning_data: { Args: Record<string, never>; Returns: Json };
 
       // Migration 0011. These exist because PostgREST serves only exposed
       // schemas: `private` is hidden, so it is reached through public

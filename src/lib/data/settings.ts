@@ -1,5 +1,7 @@
 import 'server-only';
 
+import { cache } from 'react';
+
 import { createClient } from '@/lib/supabase/server';
 import type { Profile, UserSettings } from '@/types/database';
 
@@ -11,17 +13,25 @@ import type { Profile, UserSettings } from '@/types/database';
  * not a control — this makes it observable.
  */
 
-export async function getProfile(): Promise<Profile | null> {
+export const getProfile = cache(async (): Promise<Profile | null> => {
   const supabase = await createClient();
   const { data } = await supabase.from('profiles').select('*').maybeSingle();
   return (data as Profile | null) ?? null;
-}
+});
 
-export async function getSettings(): Promise<UserSettings | null> {
+export const getSettings = cache(async (): Promise<UserSettings | null> => {
   const supabase = await createClient();
   const { data } = await supabase.from('user_settings').select('*').maybeSingle();
   return (data as UserSettings | null) ?? null;
-}
+});
+
+export const getLearningPauseState = cache(async (): Promise<boolean> => {
+  const settings = await getSettings();
+  return Boolean(
+    settings?.learning_paused_until &&
+      Date.parse(settings.learning_paused_until) > Date.now(),
+  );
+});
 
 export type ConnectionStatus = {
   provider: string;
@@ -37,7 +47,7 @@ export type ConnectionStatus = {
  * Read from `connected_account_status`, the view with no token columns — so
  * there is nothing sensitive here to leak into a server component's props.
  */
-export async function getConnectionStatus(): Promise<ConnectionStatus | null> {
+export const getConnectionStatus = cache(async (): Promise<ConnectionStatus | null> => {
   const supabase = await createClient();
   const { data } = await supabase.from('connected_account_status').select('*').maybeSingle();
 
@@ -58,7 +68,7 @@ export async function getConnectionStatus(): Promise<ConnectionStatus | null> {
     connectionStatus: row.connection_status,
     lastRefreshedAt: row.last_refreshed_at,
   };
-}
+});
 
 export type StoredDataSummary = {
   label: string;
@@ -89,6 +99,11 @@ const COUNTED_TABLES = [
   'action_logs',
   'conversations',
   'research_reports',
+  'learning_items',
+  'learning_feedback',
+  'atlas_adaptations',
+  'system_metrics',
+  'evolution_proposals',
 ] as const;
 
 type CountedTable = (typeof COUNTED_TABLES)[number];
@@ -102,6 +117,11 @@ const TABLE_LABEL: Record<CountedTable, string> = {
   action_logs: 'Action log entries',
   conversations: 'Conversations',
   research_reports: 'Research reports',
+  learning_items: 'Learned observations and patterns',
+  learning_feedback: 'Learning feedback',
+  atlas_adaptations: 'Atlas adaptations',
+  system_metrics: 'Aggregate health metrics',
+  evolution_proposals: 'Evolution proposals',
 };
 
 /** Mirrors DATA_RETENTION.md. If one changes, change both in the same commit. */
@@ -114,6 +134,11 @@ const TABLE_RETENTION: Record<CountedTable, string> = {
   action_logs: '365 days',
   conversations: 'Your retention setting',
   research_reports: 'Kept until you delete them',
+  learning_items: 'Until dismissed or learning reset',
+  learning_feedback: 'Until learning reset',
+  atlas_adaptations: 'Until reverted or learning reset',
+  system_metrics: 'Until learning reset',
+  evolution_proposals: 'Until dismissed or learning reset',
 };
 
 export async function getStoredDataSummary(): Promise<StoredDataSummary[]> {

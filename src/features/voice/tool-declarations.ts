@@ -120,6 +120,19 @@ export const VOICE_FUNCTION_DECLARATIONS = [
     },
   },
   {
+    name: 'learning.feedback',
+    description: 'Confirm, correct, dismiss or rate a learned item returned by memory.search when the user explicitly gives feedback.',
+    parameters: {
+      type: 'object',
+      properties: {
+        learningItemId: { type: 'string', description: 'UUID returned by memory.search.' },
+        feedback: { type: 'string', enum: ['useful', 'not_useful', 'confirm', 'correct', 'dismiss'] },
+        correctedSummary: { type: 'string', description: 'Required only for a correction; the accurate replacement.' },
+      },
+      required: ['learningItemId', 'feedback'],
+    },
+  },
+  {
     name: 'research.current_web',
     description: 'Research a current topic using live grounded sources and save the resulting report in Research.',
     parameters: {

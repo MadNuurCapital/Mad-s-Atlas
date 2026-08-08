@@ -4,18 +4,17 @@ import type { Metadata } from 'next';
 import { VoicePanel } from '@/features/voice/VoicePanel';
 
 export const metadata: Metadata = { title: 'Talk' };
-export const dynamic = 'force-dynamic';
 
 const SUGGESTIONS = [
   'What tasks are due today?',
   'Remind me tomorrow at 9 AM',
   'What is on my calendar today?',
-  'Find unread emails from this week',
+  'Research today’s most important market signal',
 ] as const;
 
 export default function TalkPage() {
   return (
-    <div className="relative min-h-[calc(100dvh-6rem)] overflow-hidden px-4 py-6 sm:px-8 lg:min-h-dvh lg:px-10 lg:py-8">
+    <div className="atlas-safe-top relative min-h-[calc(100dvh-6rem)] overflow-hidden px-4 py-6 sm:px-8 lg:min-h-dvh lg:px-10 lg:py-8">
       <div aria-hidden className="atlas-grid pointer-events-none absolute inset-0 opacity-35" />
       <div aria-hidden className="pointer-events-none absolute top-[12%] left-1/2 size-[30rem] max-w-[95vw] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgb(39_107_78/0.18),transparent_66%)] blur-2xl" />
 
@@ -34,7 +33,7 @@ export default function TalkPage() {
             <ul className="mt-3 space-y-2 text-xs leading-relaxed text-tertiary">
               <li>Audio goes directly to Gemini and is never stored.</li>
               <li>Each session uses a short-lived, single-use token.</li>
-              <li>Consequential actions still require your approval.</li>
+            <li>Calendar events can be created directly; protected actions still require approval.</li>
             </ul>
           </div>
         </details>

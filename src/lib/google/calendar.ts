@@ -6,9 +6,9 @@ import { ATLAS_DEFAULT_TIMEZONE } from '@/lib/time';
 /**
  * Google Calendar.
  *
- * Reads run automatically (Level 1). Every write is Level 2 and reaches this
- * module only through an approved action — there is no path from a model
- * proposal straight to a calendar change.
+ * Reads and user-requested event creation are Level 1. The tool registry still
+ * validates every field and logs the result, but an explicit request from Mad
+ * does not create a redundant approval step.
  *
  * There is deliberately no delete function: `calendar.execute_delete` is
  * Level 3 in V1. Atlas can propose a deletion for Muhammad to action himself.
@@ -153,7 +153,7 @@ export type CreateEventInput = {
   attendees?: string[];
 };
 
-/** Create an event. Reached only through an approved Level 2 action. */
+/** Create an event after the Level 1 tool boundary validates the request. */
 export async function createEvent(
   userId: string,
   input: CreateEventInput,

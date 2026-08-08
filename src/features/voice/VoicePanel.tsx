@@ -18,10 +18,26 @@ import { cn } from '@/lib/cn';
  * is recording is a privacy problem wearing a nice animation.
  */
 export function VoicePanel({ nodes = [] }: { nodes?: OrbitNode[] }) {
-  const { state, error, stream, transcript, start, stop } = useVoiceSession();
+  const { state, error, stream, outputLevel, transcript, start, stop } = useVoiceSession();
 
   const live = state === 'listening';
   const active = state !== 'idle' && state !== 'error';
+  const microphoneOn = Boolean(stream) && active;
+
+  const stateDescription =
+    state === 'requesting_permission'
+      ? 'Waiting for your browser microphone decision.'
+      : state === 'connecting' || state === 'reconnecting'
+        ? 'Opening the private voice channel. Your audio is not being sent yet.'
+        : state === 'listening'
+          ? 'Your microphone is on. Speak naturally.'
+          : state === 'understanding'
+            ? 'Atlas is processing what you said. You can continue naturally.'
+            : state === 'using_tool'
+              ? 'Atlas is carrying out the requested tool action.'
+              : state === 'speaking'
+                ? 'Atlas is responding. You can interrupt at any time.'
+                : 'Your microphone is off. Atlas is not listening.';
 
   return (
     <div className="flex min-h-[calc(100dvh-12rem)] flex-col items-center justify-center">
@@ -31,7 +47,7 @@ export function VoicePanel({ nodes = [] }: { nodes?: OrbitNode[] }) {
       </div>
 
       <OrbitField nodes={nodes}>
-        <AtlasCore state={state} stream={stream} />
+        <AtlasCore state={state} stream={stream} outputLevel={outputLevel} />
       </OrbitField>
 
       {/* Status. aria-live so a screen reader hears the state change too. */}
@@ -58,8 +74,11 @@ export function VoicePanel({ nodes = [] }: { nodes?: OrbitNode[] }) {
         </div>
 
         <p className="max-w-md text-center text-sm text-tertiary">
-          {live ? 'Your microphone is on. Speak naturally.' : 'Your microphone is off. Atlas is not listening.'}
+          {stateDescription}
         </p>
+        <span className="sr-only">
+          Microphone {microphoneOn ? 'active for this session' : 'inactive'}.
+        </span>
       </motion.div>
 
       <div className="mt-7 flex flex-wrap justify-center gap-2">

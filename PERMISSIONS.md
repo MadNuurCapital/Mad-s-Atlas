@@ -131,8 +131,8 @@ exist; a tool present here has exactly the level shown.
 | `reminders.update` | 1 | Update a reminder |
 | `reminders.disable` | 1 | Stop a reminder firing |
 
-> Mirroring a reminder to Google Calendar is an **external write** and is
-> therefore Level 2, handled through `calendar.propose_create`.
+> An explicit request to create a Google Calendar event is Level 1 and is
+> validated and logged at the same server tool boundary as other event writes.
 
 ### Memory
 
@@ -146,6 +146,7 @@ exist; a tool present here has exactly the level shown.
 | `memory.supersede` | 1 | Replace with a newer version, keeping history |
 | `memory.delete` | 1 | Soft delete (recoverable from versions) |
 | `memory.export_all` | 2 | Bulk export of personal information |
+| `learning.feedback` | 1 | Confirm, correct, dismiss or rate a visible learned item |
 
 **The memory sensitivity rule.** `memory.propose_save` is Level 1 when the
 memory is `sensitivity = 'normal'` and clearly factual. It escalates to Level 2
@@ -155,6 +156,11 @@ advisory — the escalation itself is decided server-side, and when in doubt it
 escalates.
 
 A suggestion **never becomes confirmed memory automatically**, at any level.
+
+Evolution proposals are inert text. There is deliberately no tool to execute a
+proposal, modify source code, run a shell command, push, merge or deploy. The
+only automatic adaptation implemented is a confirmed, prompt-only communication
+preference; it is off by default, low risk, visible and reversible.
 
 ### Ideas
 

@@ -35,6 +35,8 @@ Cron expressions are written in UTC.
 | `purge_conversations` | `30 17 * * *` | 01:30 daily | `maintenance` | Delete conversations past retention |
 | `expire_memories` | `0 18 * * *` | 02:00 daily | `maintenance` | Mark memories past `expires_at` |
 | `purge_action_logs` | `0 19 * * 0` | 03:00 **Monday** | `maintenance` | Trim the audit log |
+| `learning_reflection` | `30 18 * * *` | 02:30 daily | `learning-reflection` | Aggregate health and update evidence/confidence |
+| `learning_consolidation` | `0 20 * * 0` | 04:00 **Monday** | `learning-reflection` (`weekly: true`) | Consolidate, decay and propose improvements |
 
 Housekeeping runs in the small hours Singapore time, when Muhammad is asleep and
 nothing is competing for it.
@@ -230,6 +232,65 @@ One function, several tasks, dispatched by a `task` parameter:
 
 Each is a single security-definer function call, so the work happens in the
 database rather than being pulled out and pushed back.
+
+### `learning-reflection`
+
+Runs deterministically and makes no Gemini or embedding request. The daily run
+aggregates redacted action-log outcomes into latency and failure-rate windows,
+reinforces pattern lifecycle state and gradually decays stale, unconfirmed
+inferences. The weekly run uses a seven-day window and performs the same bounded
+consolidation. Confirmed or pinned items never decay.
+
+Only a confirmed communication preference can become an automatic adaptation,
+and only when **Automatic low-risk adaptations** is enabled. That adaptation is
+an inert prompt instruction, is visible on `/evolution`, and is reversible.
+Degraded metrics can create an exportable proposal, but the job cannot execute
+code, run a shell command, push, merge, change permissions or deploy.
+
+This function uses the current Supabase secret-key flow (`auth: 'secret'`), so
+Cron sends the encrypted `atlas_automation_key` from Vault in the `apikey`
+header. Its project URL is stored as `atlas_project_url`. The two idempotent
+schedules are:
+
+```sql
+select cron.unschedule(jobid)
+from cron.job
+where jobname in ('learning_reflection', 'learning_consolidation');
+
+select cron.schedule(
+  'learning_reflection',
+  '30 18 * * *',
+  $$
+  select net.http_post(
+    url := (select decrypted_secret from vault.decrypted_secrets where name = 'atlas_project_url')
+      || '/functions/v1/learning-reflection',
+    headers := jsonb_build_object(
+      'Content-Type', 'application/json',
+      'apikey', (select decrypted_secret from vault.decrypted_secrets where name = 'atlas_automation_key')
+    ),
+    body := jsonb_build_object('weekly', false),
+    timeout_milliseconds := 60000
+  );
+  $$
+);
+
+select cron.schedule(
+  'learning_consolidation',
+  '0 20 * * 0',
+  $$
+  select net.http_post(
+    url := (select decrypted_secret from vault.decrypted_secrets where name = 'atlas_project_url')
+      || '/functions/v1/learning-reflection',
+    headers := jsonb_build_object(
+      'Content-Type', 'application/json',
+      'apikey', (select decrypted_secret from vault.decrypted_secrets where name = 'atlas_automation_key')
+    ),
+    body := jsonb_build_object('weekly', true),
+    timeout_milliseconds := 60000
+  );
+  $$
+);
+```
 
 ---
 

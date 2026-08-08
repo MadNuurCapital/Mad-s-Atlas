@@ -140,6 +140,12 @@ export const updateSettingsSchema = z.object({
   research_detail_level: z.enum(['brief', 'standard', 'detailed']).optional(),
   approval_expiry_minutes: z.number().int().min(5).max(1440).optional(),
   meeting_prep_lead_minutes: z.number().int().min(5).max(240).optional(),
+  learning_enabled: z.boolean().optional(),
+  learning_paused_until: z.iso.datetime().nullable().optional(),
+  proactive_suggestions_enabled: z.boolean().optional(),
+  workflow_learning_enabled: z.boolean().optional(),
+  system_diagnostics_enabled: z.boolean().optional(),
+  automatic_adaptations_enabled: z.boolean().optional(),
 });
 
 export const updateProfileSchema = z.object({

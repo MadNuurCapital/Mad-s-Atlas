@@ -18,6 +18,8 @@
 
 import { createClient } from '@supabase/supabase-js';
 
+import { ATLAS_VOICE, atlasSpeechConfig } from '../src/features/voice/config';
+
 type Check = {
   name: string;
   status: 'pass' | 'fail' | 'skip';
@@ -193,6 +195,7 @@ async function main(): Promise<void> {
             model: liveModel,
             config: {
               responseModalities: [Modality.AUDIO],
+              speechConfig: atlasSpeechConfig(),
               sessionResumption: {},
               inputAudioTranscription: {},
               outputAudioTranscription: {},
@@ -208,6 +211,7 @@ async function main(): Promise<void> {
         token.name ? 'pass' : 'fail',
         token.name ? 'a single-use token was issued (value not shown)' : 'no token returned',
       );
+      record('Fixed Atlas voice configured', 'pass', `${ATLAS_VOICE} is locked into the token`);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'unknown';
       // Strip anything key-shaped before printing a provider error.

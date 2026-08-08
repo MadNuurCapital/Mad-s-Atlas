@@ -72,7 +72,7 @@ export function Card({
   return (
     <Component
       className={cn(
-        'atlas-panel rounded-2xl p-5',
+        'atlas-panel atlas-corners rounded-2xl p-5',
         className,
       )}
     >

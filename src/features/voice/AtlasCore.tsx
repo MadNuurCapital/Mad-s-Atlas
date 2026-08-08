@@ -1,6 +1,7 @@
 'use client';
 
 import { motion, useMotionValue, useReducedMotion, useSpring, useTransform } from 'motion/react';
+import Image from 'next/image';
 import { useEffect, useRef } from 'react';
 
 import type { VoiceState } from '@/features/voice/types';
@@ -20,6 +21,8 @@ type Props = {
   state: VoiceState;
   /** Live media stream while listening. Null when the microphone is off. */
   stream: MediaStream | null;
+  /** RMS of Atlas's real PCM response audio, normalised to 0..1. */
+  outputLevel: number;
 };
 
 /** Colour per state. Gold is the brand accent; it earns its place by meaning something. */
@@ -35,7 +38,7 @@ const STATE_TINT: Record<VoiceState, string> = {
   error: 'var(--color-critical)',
 };
 
-export function AtlasCore({ state, stream }: Props) {
+export function AtlasCore({ state, stream, outputLevel }: Props) {
   const reduceMotion = useReducedMotion();
 
   /**
@@ -59,6 +62,13 @@ export function AtlasCore({ state, stream }: Props) {
    * UI would then silently stop reacting.
    */
   useEffect(() => {
+    // While Atlas speaks, the core follows the actual decoded PCM response.
+    // Do not leave the microphone analyser competing for the same motion value.
+    if (state === 'speaking') {
+      level.set(outputLevel);
+      return;
+    }
+
     // No stream means the microphone is off. Falling to zero is not
     // decoration — a still ring is how the interface tells the truth about
     // not capturing.
@@ -99,7 +109,7 @@ export function AtlasCore({ state, stream }: Props) {
       if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
       void context.close();
     };
-  }, [stream, level]);
+  }, [stream, state, outputLevel, level]);
 
   const tint = STATE_TINT[state];
   const active = state === 'listening' || state === 'speaking';
@@ -140,7 +150,7 @@ export function AtlasCore({ state, stream }: Props) {
       {/* Core */}
       <motion.div
         className={cn(
-          'relative grid size-28 place-items-center rounded-full sm:size-36',
+          'relative grid size-28 place-items-center overflow-hidden rounded-full sm:size-36',
           'border border-accent/20 bg-surface-raised/85 backdrop-blur-xl',
         )}
         style={{
@@ -148,14 +158,18 @@ export function AtlasCore({ state, stream }: Props) {
           boxShadow: `inset 0 0 30px -10px ${tint}, 0 8px 40px -12px rgb(0 0 0 / 0.6)`,
         }}
       >
-        <motion.span
-          className="font-display relative text-5xl leading-none tracking-tight"
-          animate={{ color: tint }}
-          transition={{ duration: 0.4 }}
-        >
-          A
-          <span className="absolute -top-1 -right-3 text-[0.48rem] text-accent">✦</span>
-        </motion.span>
+        <Image
+          src="/icons/atlas-192.png"
+          alt="Atlas core"
+          width={144}
+          height={144}
+          priority
+          className="size-full object-cover"
+        />
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-0 rounded-full ring-1 ring-inset ring-accent/25"
+        />
       </motion.div>
     </div>
   );

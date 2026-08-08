@@ -26,7 +26,7 @@ export function ResearchForm() {
   }
 
   return (
-    <div className="atlas-panel-emphasis rounded-3xl p-5 sm:p-7">
+    <div className="atlas-panel-emphasis atlas-corners rounded-3xl p-5 sm:p-7">
       <label htmlFor="research-query" className="font-display text-2xl text-primary">
         What should Atlas investigate?
       </label>
@@ -43,7 +43,11 @@ export function ResearchForm() {
         className="mt-5 w-full resize-y rounded-xl border border-line bg-surface-inset px-4 py-3 text-sm leading-relaxed text-primary placeholder:text-tertiary focus:border-accent focus:outline-none"
       />
       <div className="mt-3 flex items-center justify-between gap-3">
-        <p className="text-2xs text-tertiary">Sources are taken from Google grounding metadata, never invented.</p>
+        <p className="text-2xs text-tertiary" aria-live="polite">
+          {pending
+            ? 'Searching, cross-checking and synthesising live sources…'
+            : 'Sources are taken from Google grounding metadata, never invented.'}
+        </p>
         <button
           type="button"
           disabled={pending || query.trim().length < 3}
@@ -51,7 +55,7 @@ export function ResearchForm() {
           className="flex min-h-11 shrink-0 items-center gap-2 rounded-full bg-surface-accent px-5 text-sm font-medium text-accent-text disabled:opacity-60"
         >
           <Search aria-hidden className="size-4" />
-          {pending ? 'Researching…' : 'Research'}
+          {pending ? 'Analysing…' : 'Research'}
         </button>
       </div>
       {error ? <p role="alert" className="mt-3 text-sm text-critical">{error}</p> : null}

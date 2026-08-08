@@ -41,6 +41,7 @@ export function useVoiceSession() {
   const [transcript, setTranscript] = useState<TranscriptEntry[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
+  const [outputLevel, setOutputLevel] = useState(0);
 
   const streamRef = useRef<MediaStream | null>(null);
   const socketRef = useRef<WebSocket | null>(null);
@@ -68,6 +69,7 @@ export function useVoiceSession() {
     }
     playbackSourcesRef.current.clear();
     nextPlaybackTimeRef.current = 0;
+    setOutputLevel(0);
   }, []);
 
   const releaseAudio = useCallback(() => {
@@ -168,6 +170,10 @@ export function useVoiceSession() {
     const samples = base64Pcm16ToFloatAudio(base64);
     if (samples.length === 0) return;
 
+    let energy = 0;
+    for (const sample of samples) energy += sample * sample;
+    setOutputLevel(Math.min(1, Math.sqrt(energy / samples.length) * 2.4));
+
     const sampleRate = sampleRateFromMimeType(mimeType);
     const buffer = context.createBuffer(1, samples.length, sampleRate);
     buffer.getChannelData(0).set(samples);
@@ -184,6 +190,7 @@ export function useVoiceSession() {
       () => {
         playbackSourcesRef.current.delete(source);
         if (playbackSourcesRef.current.size === 0 && sessionReadyRef.current) {
+          setOutputLevel(0);
           setState('listening');
         }
       },
@@ -458,5 +465,5 @@ export function useVoiceSession() {
     [],
   );
 
-  return { state, transcript, error, stream, start, stop, setTranscript };
+  return { state, transcript, error, stream, outputLevel, start, stop, setTranscript };
 }

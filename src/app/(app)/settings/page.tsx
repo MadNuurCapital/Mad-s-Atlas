@@ -5,15 +5,22 @@ import { Card, Page, Section } from '@/components/ui/Page';
 import { GoogleConnectionPanel } from '@/features/settings/GoogleConnectionPanel';
 import { ProfileEditor } from '@/features/settings/ProfileEditor';
 import {
+  setAutomaticAdaptationsEnabled,
   setDailyBriefingEnabled,
+  setLearningEnabled,
   setMemoryEnabled,
+  setProactiveSuggestionsEnabled,
+  setSystemDiagnosticsEnabled,
+  setWorkflowLearningEnabled,
 } from '@/features/settings/actions';
+import { LearningPauseButton } from '@/features/settings/LearningPauseButton';
 import { SettingsToggle } from '@/features/settings/SettingsToggle';
 import { requireOwner } from '@/lib/auth/owner';
 import { listActionLogs } from '@/lib/data/action-log';
 import { getLatestBriefing } from '@/lib/data/briefings';
 import {
   getConnectionStatus,
+  getLearningPauseState,
   getProfile,
   getSettings,
   getStoredDataSummary,
@@ -35,13 +42,14 @@ function Row({ label, value }: { label: string; value: string }) {
 export default async function SettingsPage() {
   const session = await requireOwner();
 
-  const [profile, settings, connection, stored, recentAccess, latestBriefing] = await Promise.all([
+  const [profile, settings, connection, stored, recentAccess, latestBriefing, learningPaused] = await Promise.all([
     getProfile(),
     getSettings(),
     getConnectionStatus(),
     getStoredDataSummary(),
     listActionLogs({ limit: 8 }),
     getLatestBriefing(),
+    getLearningPauseState(),
   ]);
 
   return (
@@ -56,6 +64,20 @@ export default async function SettingsPage() {
               Last renewed {formatRelative(new Date(connection.lastRefreshedAt))}
             </p>
           ) : null}
+        </Card>
+      </Section>
+
+      <Section
+        title="Learning & evolution"
+        description="Atlas learns from meaningful outcomes and repeated evidence. Inferences remain visible and correctable."
+      >
+        <Card>
+          <SettingsToggle label="Self-learning" description="Allow Atlas to record and consolidate safe observations separately from confirmed Memory." enabled={Boolean(settings?.learning_enabled)} action={setLearningEnabled} />
+          <SettingsToggle label="Proactive suggestions" description="Surface a suggestion only when relevance, urgency and confidence outweigh interruption cost." enabled={Boolean(settings?.proactive_suggestions_enabled)} action={setProactiveSuggestionsEnabled} />
+          <SettingsToggle label="Workflow learning" description="Detect repeated tool sequences using tool names and outcomes—not private payloads." enabled={Boolean(settings?.workflow_learning_enabled)} action={setWorkflowLearningEnabled} />
+          <SettingsToggle label="System diagnostics" description="Store aggregate latency, failure-rate and reliability signals without user content." enabled={Boolean(settings?.system_diagnostics_enabled)} action={setSystemDiagnosticsEnabled} />
+          <SettingsToggle label="Automatic low-risk adaptations" description="Permit only reversible behavioral tuning. Code, permissions, integrations and deployments always stay manual." enabled={Boolean(settings?.automatic_adaptations_enabled)} action={setAutomaticAdaptationsEnabled} />
+          <LearningPauseButton isPaused={learningPaused} />
         </Card>
       </Section>
 

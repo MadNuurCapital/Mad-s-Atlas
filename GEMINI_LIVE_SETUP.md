@@ -136,16 +136,22 @@ conversation.
 
 ## Voice experience
 
+### Fixed identity
+
+Atlas uses the Google prebuilt voice `Charon` for every session. The choice is
+centralised in `src/features/voice/config.ts` and locked into both the
+ephemeral-token constraint and browser setup message using the installed SDK's
+`speechConfig.voiceConfig.prebuiltVoiceConfig.voiceName` shape. `Orus` is the
+single predetermined fallback if token minting rejects the primary voice.
+Atlas never selects or rotates a random voice.
+
 ### Controls
 
 - Microphone permission handling, requested at the moment of use with a clear
   explanation — never on page load
-- **Push-to-talk** — the default
-- **Hands-free** — optional, requires explicit activation each session
-- Start session / End session
-- Mute
+- Start voice session / End session
+- Hands-free conversation only after explicit activation for that session
 - Interrupt (barge-in) — Muhammad can talk over Atlas and it stops
-- Text fallback, always available
 
 ### States
 
@@ -153,11 +159,13 @@ Exactly one is shown at a time:
 
 | State | Meaning |
 |---|---|
-| `idle` | Not connected |
+| `idle` | `ATLAS // STANDBY`; microphone inactive |
+| `requesting_permission` | Waiting for the explicit browser microphone decision |
+| `connecting` | Secure token and Live handshake in progress |
 | `listening` | Microphone genuinely live and capturing |
-| `understanding` | Processing the utterance |
-| `using_tool` | Executing a tool, with the tool named |
-| `speaking` | Atlas is talking |
+| `understanding` | `ATLAS // PROCESSING` |
+| `using_tool` | `ATLAS // EXECUTING` |
+| `speaking` | `ATLAS // RESPONDING` |
 | `reconnecting` | Connection dropped, resumption in progress |
 | `error` | Something failed, with a plain explanation |
 
@@ -225,7 +233,7 @@ Voice is the most expensive path in the product:
 - [ ] A voice session starts and Atlas responds
 - [ ] Interruption works — talking over Atlas stops it
 - [ ] Dropping the network shows `reconnecting`, then recovers
-- [ ] Text fallback works with voice unavailable
+- [ ] Every new session and reconnect uses the same recognisable Atlas voice
 - [ ] Ending the session turns off the browser microphone indicator
 - [ ] No audio is written anywhere
 - [ ] A tool call from voice follows the same approval path as from text

@@ -65,7 +65,7 @@ export function CommandBar() {
 
 export function HeroPriority({ priority }: { priority: TodayPriority | null }) {
   return (
-    <article className="atlas-panel-emphasis relative min-h-[18rem] overflow-hidden rounded-3xl p-6 sm:p-7">
+    <article className="atlas-panel-emphasis atlas-corners relative min-h-[18rem] overflow-hidden rounded-3xl p-6 sm:p-7">
       <div aria-hidden className="atlas-grid absolute inset-0 opacity-50" />
       <div aria-hidden className="absolute right-[-8%] bottom-[-45%] size-72 rounded-full border border-accent/15" />
       <div aria-hidden className="absolute right-[4%] bottom-[-34%] size-56 rounded-full border border-accent/10" />
@@ -123,7 +123,7 @@ export function Timeline({
   calendarConnected: boolean;
 }) {
   return (
-    <section className="atlas-panel rounded-3xl p-5 sm:p-6" aria-labelledby="today-schedule">
+    <section className="atlas-panel atlas-corners rounded-3xl p-5 sm:p-6" aria-labelledby="today-schedule">
       <div className="flex items-center justify-between gap-4">
         <div>
           <p className="text-xs font-semibold tracking-[0.13em] text-tertiary uppercase">Today</p>
@@ -225,7 +225,7 @@ export function IntelligencePanel({
   const preview = briefing?.full_briefing ?? briefing?.recommended_priority;
 
   return (
-    <section className="atlas-panel relative overflow-hidden rounded-3xl p-6 sm:p-7" aria-labelledby="daily-briefing">
+    <section className="atlas-panel atlas-corners relative overflow-hidden rounded-3xl p-6 sm:p-7" aria-labelledby="daily-briefing">
       <div aria-hidden className="absolute top-0 right-0 h-full w-1/2 bg-[radial-gradient(circle_at_top_right,rgb(39_107_78/0.18),transparent_62%)]" />
       <div className="relative">
         <div className="flex items-center justify-between gap-4">

@@ -6,6 +6,7 @@ import { getTool, registerTool, type AtlasTool } from '@/lib/atlas/tools/registr
 import { createReminder, disableReminder, listReminders } from '@/lib/data/reminders';
 import { listMemories } from '@/lib/data/memories';
 import { getSettings } from '@/lib/data/settings';
+import { getRelevantLearningContext, recordLearningObservation } from '@/lib/data/evolution';
 import { listTasks } from '@/lib/data/tasks';
 import { createEvent, listEvents } from '@/lib/google/calendar';
 import { createDraft, searchMessages } from '@/lib/google/gmail';
@@ -16,6 +17,7 @@ import {
   zonedTimeToUtc,
 } from '@/lib/time';
 import { createReminderSchema, createTaskSchema } from '@/lib/validation/schemas';
+import type { LearningItem } from '@/types/database';
 
 /**
  * Concrete tool definitions.
@@ -261,7 +263,11 @@ const memorySearch: AtlasTool<z.infer<typeof memorySearchSchema>, unknown> = {
       return { ok: false, errorCode: 'memory_disabled', message: 'Memory is turned off in Settings.' };
     }
 
-    const memories = (await listMemories({ status: 'confirmed', search: input.query, limit: input.limit }))
+    const [memories, learned] = await Promise.all([
+      listMemories({ status: 'confirmed', search: input.query, limit: input.limit }),
+      getRelevantLearningContext(input.query, Math.min(input.limit, 6)).catch(() => []),
+    ]);
+    const confirmed = memories
       .map((memory) => ({
         id: memory.id,
         title: memory.title,
@@ -271,7 +277,14 @@ const memorySearch: AtlasTool<z.infer<typeof memorySearchSchema>, unknown> = {
         updatedAt: memory.updated_at,
       }));
 
-    return { ok: true, output: memories, summary: `Found ${memories.length} relevant memory item(s)` };
+    return {
+      ok: true,
+      output: {
+        confirmedMemories: confirmed,
+        learnedContext: learned.map((item) => ({ id: item.id, title: item.title, summary: item.summary, category: item.category, confidence: item.confidence, status: item.status })),
+      },
+      summary: `Found ${confirmed.length} confirmed memories and ${learned.length} relevant learned item(s)`,
+    };
   },
 };
 
@@ -340,7 +353,74 @@ const memoryRemember: AtlasTool<z.infer<typeof memoryRememberSchema>, unknown> =
       return { ok: false, errorCode: error?.code ?? 'insert_failed', message: 'Atlas could not save that memory.' };
     }
 
+    const learningCategory = {
+      profile: 'facts', preference: 'preferences', goal: 'goals', routine: 'routines',
+      important_person: 'people', project: 'projects', commitment: 'goals', decision: 'decisions',
+      idea_reference: 'projects',
+    } as const;
+    // Best-effort sidecar. The confirmed memory save above remains successful
+    // even if learning is paused or the evolution migration is not yet live.
+    await recordLearningObservation({
+      userId: context.userId,
+      kind: input.category === 'decision' ? 'decision' : 'confirmed_memory',
+      category: learningCategory[input.category],
+      key: `memory:${input.category}:${input.title}`,
+      title: input.title,
+      summary: input.content,
+      sourceType: 'voice',
+      sourceReference: data.id,
+      explicit: true,
+    }).catch(() => null);
+
     return { ok: true, output: data, summary: `Remembered “${input.title}”` };
+  },
+};
+
+const learningFeedbackSchema = z.object({
+  learningItemId: z.uuid(),
+  feedback: z.enum(['useful', 'not_useful', 'confirm', 'correct', 'dismiss']),
+  correctedSummary: z.string().trim().min(1).max(2000).optional(),
+}).refine((value) => value.feedback !== 'correct' || Boolean(value.correctedSummary), {
+  message: 'A correction needs the corrected information.',
+  path: ['correctedSummary'],
+});
+
+const learningFeedback: AtlasTool<z.infer<typeof learningFeedbackSchema>, unknown> = {
+  name: 'learning.feedback',
+  description: 'Record the user’s explicit correction or confirmation of a learned item returned by memory.search.',
+  permissionLevel: AtlasPermissionLevel.Automatic,
+  inputSchema: learningFeedbackSchema,
+  async execute(context, input) {
+    const supabase = await createClient();
+    const { data: item } = await supabase.from('learning_items').select('*').eq('id', input.learningItemId).maybeSingle();
+    if (!item) return { ok: false, errorCode: 'not_found', message: 'That learned item could not be found.' };
+    if (input.feedback === 'correct') {
+      if (!input.correctedSummary) return { ok: false, errorCode: 'invalid_correction', message: 'Please state the corrected information.' };
+      const replacement = await recordLearningObservation({
+        userId: context.userId,
+        kind: item.kind,
+        category: item.category,
+        key: `correction:${item.canonical_key}:${input.correctedSummary}`,
+        title: item.title,
+        summary: input.correctedSummary,
+        sourceType: 'feedback',
+        sourceReference: item.id,
+        explicit: true,
+      });
+      if (!replacement) return { ok: false, errorCode: 'unsafe_or_failed', message: 'Atlas could not safely save that correction.' };
+      await supabase.from('learning_items').update({ status: 'superseded', superseded_by: replacement.id }).eq('id', item.id);
+      await supabase.from('learning_feedback').insert({ user_id: context.userId, learning_item_id: item.id, feedback_type: 'correct', source: 'voice' });
+      return { ok: true, output: { id: replacement.id }, summary: 'Corrected the learned item and retained its history' };
+    }
+    const changes: Partial<LearningItem> = input.feedback === 'confirm'
+      ? { user_confirmed: true, status: item.kind === 'workflow' ? 'active' : 'confirmed', confidence: 1 }
+      : input.feedback === 'dismiss'
+        ? { status: 'dismissed', feedback_score: item.feedback_score - 1 }
+        : { confidence: Math.max(0, Math.min(1, item.confidence + (input.feedback === 'useful' ? 0.1 : -0.2))), feedback_score: item.feedback_score + (input.feedback === 'useful' ? 1 : -1) };
+    const { error } = await supabase.from('learning_items').update(changes).eq('id', input.learningItemId);
+    if (error) return { ok: false, errorCode: error.code, message: 'Atlas could not save that correction.' };
+    await supabase.from('learning_feedback').insert({ user_id: context.userId, learning_item_id: input.learningItemId, feedback_type: input.feedback, source: 'voice' });
+    return { ok: true, output: { id: input.learningItemId }, summary: 'Updated Atlas learning from your feedback' };
   },
 };
 
@@ -445,6 +525,7 @@ export function registerAllTools(): void {
   registerTool(remindersDisable);
   registerTool(memorySearch);
   registerTool(memoryRemember);
+  registerTool(learningFeedback);
   registerTool(researchCurrent);
   registerTool(calendarListToday);
   registerTool(calendarExecuteCreate);
