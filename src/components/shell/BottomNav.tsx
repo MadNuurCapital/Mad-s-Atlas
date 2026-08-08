@@ -20,7 +20,11 @@ export function BottomNav() {
     <nav
       aria-label="Main"
       className="fixed inset-x-0 bottom-0 z-40 border-t border-line-subtle bg-surface-inset/92 shadow-[0_-20px_50px_-30px_rgb(0_0_0/0.9)] backdrop-blur-xl lg:hidden"
-      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+      style={{
+        paddingBottom: 'env(safe-area-inset-bottom)',
+        paddingLeft: 'env(safe-area-inset-left)',
+        paddingRight: 'env(safe-area-inset-right)',
+      }}
     >
       <ul className="grid grid-cols-5">
         {MOBILE_NAV_ITEMS.map((item) => {

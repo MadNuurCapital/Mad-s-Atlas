@@ -32,6 +32,7 @@ describe('Gemini Live protocol', () => {
           responseModalities: ['AUDIO'],
           expiresAt: '2026-08-07T11:00:00.000Z',
           newSessionExpiresAt: '2026-08-07T10:31:00.000Z',
+          voice: 'Charon',
         },
         'resume-handle',
       );
@@ -39,7 +40,12 @@ describe('Gemini Live protocol', () => {
     expect(message).toMatchObject({
       setup: {
         model: 'models/gemini-3.1-flash-live-preview',
-        generationConfig: { responseModalities: ['AUDIO'] },
+        generationConfig: {
+          responseModalities: ['AUDIO'],
+          speechConfig: {
+            voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Charon' } },
+          },
+        },
         sessionResumption: { handle: 'resume-handle' },
         inputAudioTranscription: {},
         outputAudioTranscription: {},

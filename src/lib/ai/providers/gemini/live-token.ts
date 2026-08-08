@@ -2,6 +2,11 @@ import 'server-only';
 
 import { GoogleGenAI, Modality } from '@google/genai';
 
+import {
+  ATLAS_VOICE,
+  ATLAS_VOICE_FALLBACK,
+  atlasSpeechConfig,
+} from '@/features/voice/config';
 import { serverEnv } from '@/lib/validation/env';
 
 /**
@@ -26,6 +31,7 @@ export type LiveTokenResult = {
     responseModalities: string[];
     expiresAt: string;
     newSessionExpiresAt: string;
+    voice: string;
   };
 };
 
@@ -62,8 +68,8 @@ export async function createLiveToken(): Promise<LiveTokenResult> {
 
   const ai = new GoogleGenAI({ apiKey: env.GEMINI_API_KEY });
 
-  try {
-    const token = await ai.authTokens.create({
+  async function mint(voice: string) {
+    return ai.authTokens.create({
       config: {
         // Single use. Resuming a session does not consume another use, so
         // session resumption still works after a dropped connection.
@@ -76,6 +82,7 @@ export async function createLiveToken(): Promise<LiveTokenResult> {
           model,
           config: {
             responseModalities: [Modality.AUDIO],
+            speechConfig: atlasSpeechConfig(voice),
             sessionResumption: {},
             inputAudioTranscription: {},
             outputAudioTranscription: {},
@@ -88,6 +95,19 @@ export async function createLiveToken(): Promise<LiveTokenResult> {
         httpOptions: { apiVersion: 'v1alpha' },
       },
     });
+  }
+
+  try {
+    let voice = ATLAS_VOICE;
+    let token;
+
+    try {
+      token = await mint(voice);
+    } catch {
+      voice = ATLAS_VOICE_FALLBACK;
+      console.warn('[gemini-live] primary Atlas voice unavailable; using fixed fallback');
+      token = await mint(voice);
+    }
 
     if (!token.name) {
       throw new LiveTokenError('no_token_returned', 'Gemini returned no ephemeral token.');
@@ -100,6 +120,7 @@ export async function createLiveToken(): Promise<LiveTokenResult> {
         responseModalities: ['AUDIO'],
         expiresAt: expireTime,
         newSessionExpiresAt: newSessionExpireTime,
+        voice,
       },
     };
   } catch (error) {

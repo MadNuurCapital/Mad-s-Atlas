@@ -17,15 +17,15 @@ export type VoiceState =
   | 'error';
 
 export const VOICE_STATE_LABEL: Record<VoiceState, string> = {
-  idle: 'Not connected',
-  requesting_permission: 'Waiting for microphone permission',
-  connecting: 'Connecting',
-  listening: 'Listening',
-  understanding: 'Thinking',
-  using_tool: 'Using a tool',
-  speaking: 'Speaking',
-  reconnecting: 'Reconnecting',
-  error: 'Something went wrong',
+  idle: 'Atlas // Standby',
+  requesting_permission: 'Atlas // Permission',
+  connecting: 'Atlas // Connecting',
+  listening: 'Atlas // Listening',
+  understanding: 'Atlas // Processing',
+  using_tool: 'Atlas // Executing',
+  speaking: 'Atlas // Responding',
+  reconnecting: 'Atlas // Reconnecting',
+  error: 'Atlas // Error',
 };
 
 export type TranscriptEntry = {
@@ -44,5 +44,6 @@ export type LiveTokenResponse = {
     expiresAt: string;
     newSessionExpiresAt: string;
     preferredName?: string;
+    voice: string;
   };
 };

@@ -1,4 +1,5 @@
 import type { LiveTokenResponse } from '@/features/voice/types';
+import { atlasSpeechConfig } from '@/features/voice/config';
 import { VOICE_FUNCTION_DECLARATIONS } from '@/features/voice/tool-declarations';
 
 /**
@@ -76,6 +77,7 @@ export function createLiveSetupMessage(
       model: `models/${sessionConfig.model.replace(/^models\//, '')}`,
       generationConfig: {
         responseModalities: sessionConfig.responseModalities,
+        speechConfig: atlasSpeechConfig(sessionConfig.voice),
       },
       sessionResumption: resumeHandle ? { handle: resumeHandle } : {},
       inputAudioTranscription: {},

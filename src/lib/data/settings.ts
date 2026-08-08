@@ -1,5 +1,7 @@
 import 'server-only';
 
+import { cache } from 'react';
+
 import { createClient } from '@/lib/supabase/server';
 import type { Profile, UserSettings } from '@/types/database';
 
@@ -11,17 +13,17 @@ import type { Profile, UserSettings } from '@/types/database';
  * not a control — this makes it observable.
  */
 
-export async function getProfile(): Promise<Profile | null> {
+export const getProfile = cache(async (): Promise<Profile | null> => {
   const supabase = await createClient();
   const { data } = await supabase.from('profiles').select('*').maybeSingle();
   return (data as Profile | null) ?? null;
-}
+});
 
-export async function getSettings(): Promise<UserSettings | null> {
+export const getSettings = cache(async (): Promise<UserSettings | null> => {
   const supabase = await createClient();
   const { data } = await supabase.from('user_settings').select('*').maybeSingle();
   return (data as UserSettings | null) ?? null;
-}
+});
 
 export type ConnectionStatus = {
   provider: string;
@@ -37,7 +39,7 @@ export type ConnectionStatus = {
  * Read from `connected_account_status`, the view with no token columns — so
  * there is nothing sensitive here to leak into a server component's props.
  */
-export async function getConnectionStatus(): Promise<ConnectionStatus | null> {
+export const getConnectionStatus = cache(async (): Promise<ConnectionStatus | null> => {
   const supabase = await createClient();
   const { data } = await supabase.from('connected_account_status').select('*').maybeSingle();
 
@@ -58,7 +60,7 @@ export async function getConnectionStatus(): Promise<ConnectionStatus | null> {
     connectionStatus: row.connection_status,
     lastRefreshedAt: row.last_refreshed_at,
   };
-}
+});
 
 export type StoredDataSummary = {
   label: string;

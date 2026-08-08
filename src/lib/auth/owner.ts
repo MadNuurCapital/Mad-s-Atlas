@@ -2,6 +2,7 @@ import 'server-only';
 
 import type { User } from '@supabase/supabase-js';
 import { redirect } from 'next/navigation';
+import { cache } from 'react';
 
 import { emailsMatch, normaliseEmail } from '@/lib/auth/normalise-email';
 import { createAdminClient } from '@/lib/supabase/admin';
@@ -13,7 +14,7 @@ import { serverEnv } from '@/lib/validation/env';
  *
  * The other three are the allowlist table, the Before User Created auth hook,
  * and Row Level Security. This layer runs on EVERY protected server request,
- * because middleware is a convenience redirect and can be bypassed by anything
+ * because the request proxy is a session-refresh convenience and can be bypassed by anything
  * that talks to a route handler directly.
  *
  * See SECURITY.md § T2.
@@ -30,15 +31,15 @@ export type OwnerSession = {
  * Uses `getUser()`, not `getSession()`: getSession reads the cookie without
  * verifying it against the auth server, so a forged cookie would satisfy it.
  */
-export async function getAuthenticatedUser(): Promise<User | null> {
+export const getAuthenticatedUser = cache(async (): Promise<User | null> => {
   const supabase = await createClient();
   const { data, error } = await supabase.auth.getUser();
   if (error || !data.user) return null;
   return data.user;
-}
+});
 
 /** Is this user the owner? Checks the configured address AND the allowlist. */
-export async function isOwner(user: User | null): Promise<boolean> {
+export const isOwner = cache(async (user: User | null): Promise<boolean> => {
   if (!user?.email) return false;
 
   const env = serverEnv();
@@ -96,7 +97,7 @@ export async function isOwner(user: User | null): Promise<boolean> {
     });
     return false;
   }
-}
+});
 
 /**
  * Require the owner, or redirect.
@@ -104,7 +105,7 @@ export async function isOwner(user: User | null): Promise<boolean> {
  * Call this at the top of every protected server component and route handler.
  * It returns the session so callers do not need a second round trip.
  */
-export async function requireOwner(): Promise<OwnerSession> {
+export const requireOwner = cache(async (): Promise<OwnerSession> => {
   const user = await getAuthenticatedUser();
 
   if (!user) {
@@ -119,7 +120,7 @@ export async function requireOwner(): Promise<OwnerSession> {
   }
 
   return { user, email: user.email ?? '' };
-}
+});
 
 /**
  * Owner check for route handlers, which must return a response rather than

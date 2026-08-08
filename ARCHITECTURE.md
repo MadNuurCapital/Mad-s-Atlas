@@ -396,7 +396,7 @@ rather than advisory:
 src/
   app/                          routes + route handlers
     (auth)/sign-in/
-    (app)/today|talk|calendar|inbox|tasks|memory|ideas|approvals|history|settings/
+    (app)/today|talk|tasks|calendar|memory|research|reminders|ideas|approvals|history|settings/
     api/
       health/
       auth/callback/

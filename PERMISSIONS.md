@@ -131,8 +131,8 @@ exist; a tool present here has exactly the level shown.
 | `reminders.update` | 1 | Update a reminder |
 | `reminders.disable` | 1 | Stop a reminder firing |
 
-> Mirroring a reminder to Google Calendar is an **external write** and is
-> therefore Level 2, handled through `calendar.propose_create`.
+> An explicit request to create a Google Calendar event is Level 1 and is
+> validated and logged at the same server tool boundary as other event writes.
 
 ### Memory
 

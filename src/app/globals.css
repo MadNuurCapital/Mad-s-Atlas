@@ -172,6 +172,8 @@
   }
 
   body {
+    min-height: 100dvh;
+    overflow-x: clip;
     background:
       radial-gradient(circle at 78% 0%, rgb(28 77 57 / 0.22), transparent 34rem),
       radial-gradient(circle at 16% 85%, rgb(201 162 39 / 0.045), transparent 28rem),
@@ -242,6 +244,7 @@
   }
 
   .atlas-panel {
+    position: relative;
     border: 1px solid var(--border-subtle);
     background:
       linear-gradient(145deg, rgb(255 255 255 / 0.022), transparent 46%),
@@ -250,6 +253,7 @@
   }
 
   .atlas-panel-emphasis {
+    position: relative;
     border: 1px solid rgb(217 182 74 / 0.23);
     background:
       radial-gradient(circle at 88% 18%, rgb(39 107 78 / 0.2), transparent 45%),
@@ -264,6 +268,57 @@
       linear-gradient(90deg, rgb(230 205 127 / 0.025) 1px, transparent 1px);
     background-size: 32px 32px;
     mask-image: linear-gradient(to bottom, black, transparent 80%);
+  }
+
+  .atlas-safe-inline {
+    padding-left: max(0px, env(safe-area-inset-left));
+    padding-right: max(0px, env(safe-area-inset-right));
+  }
+
+  .atlas-safe-top {
+    padding-top: max(0px, env(safe-area-inset-top));
+  }
+
+  .atlas-skeleton {
+    overflow: hidden;
+  }
+
+  .atlas-skeleton::after {
+    position: absolute;
+    inset: 0;
+    content: '';
+    transform: translateX(-100%);
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgb(217 182 74 / 0.06),
+      transparent
+    );
+    animation: atlas-scan 1.6s ease-in-out infinite;
+  }
+
+  .atlas-corners::before,
+  .atlas-corners::after {
+    position: absolute;
+    z-index: 1;
+    width: 1.1rem;
+    height: 1.1rem;
+    pointer-events: none;
+    content: '';
+  }
+
+  .atlas-corners::before {
+    top: -1px;
+    left: -1px;
+    border-top: 1px solid rgb(217 182 74 / 0.55);
+    border-left: 1px solid rgb(217 182 74 / 0.55);
+  }
+
+  .atlas-corners::after {
+    right: -1px;
+    bottom: -1px;
+    border-right: 1px solid rgb(217 182 74 / 0.35);
+    border-bottom: 1px solid rgb(217 182 74 / 0.35);
   }
 
   .animate-rise {
@@ -293,6 +348,12 @@
   }
   50% {
     opacity: 0.45;
+  }
+}
+
+@keyframes atlas-scan {
+  100% {
+    transform: translateX(100%);
   }
 }
 

@@ -1,6 +1,7 @@
 import { CalendarDays, ExternalLink } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { Suspense } from 'react';
 
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Card, Page, Section } from '@/components/ui/Page';
@@ -12,19 +13,31 @@ import { ATLAS_DEFAULT_TIMEZONE, formatDateTime } from '@/lib/time';
 export const metadata: Metadata = { title: 'Calendar' };
 export const dynamic = 'force-dynamic';
 
-export default async function CalendarPage() {
+export default function CalendarPage() {
+  return (
+    <Page
+      title="Calendar"
+      description="Your live Google agenda. Ask Atlas to create events directly."
+      actions={<SettingsLink />}
+    >
+      <Suspense fallback={<CalendarLoading />}>
+        <CalendarAgenda />
+      </Suspense>
+    </Page>
+  );
+}
+
+async function CalendarAgenda() {
   const { user } = await requireOwner();
   const [connection, profile] = await Promise.all([getConnectionStatus(), getProfile()]);
   const connected = connection?.connectionStatus === 'connected';
 
   if (!connected) {
     return (
-      <Page title="Calendar" description="Your live Google agenda and proposed changes.">
-        <ConnectionEmpty
-          title={connection ? 'Google Calendar needs reconnecting' : 'Connect Google Calendar'}
-          description="Connect Google in Settings to see your agenda. Reads happen automatically; creating an event always waits for your approval."
-        />
-      </Page>
+      <ConnectionEmpty
+        title={connection ? 'Google Calendar needs reconnecting' : 'Connect Google Calendar'}
+        description="Connect Google in Settings to see your agenda and let Atlas create events when you ask."
+      />
     );
   }
 
@@ -35,19 +48,12 @@ export default async function CalendarPage() {
 
   if (!result.ok) {
     return (
-      <Page title="Calendar" description="Your live Google agenda and proposed changes.">
-        <ConnectionEmpty title="Calendar access needs attention" description={result.message} />
-      </Page>
+      <ConnectionEmpty title="Calendar connection interrupted" description={result.message} />
     );
   }
 
   return (
-    <Page
-      title="Calendar"
-      description={`The next seven days from Google Calendar, shown in ${timeZone}. Every write still requires approval.`}
-      actions={<SettingsLink />}
-    >
-      <Section title="Upcoming">
+    <Section title={`Upcoming · ${timeZone}`}>
         {result.data.length === 0 ? (
           <EmptyState
             icon={CalendarDays}
@@ -82,8 +88,18 @@ export default async function CalendarPage() {
             ))}
           </ul>
         )}
-      </Section>
-    </Page>
+    </Section>
+  );
+}
+
+function CalendarLoading() {
+  return (
+    <div className="atlas-panel atlas-corners atlas-skeleton min-h-64 rounded-3xl p-6" role="status">
+      <p className="text-2xs font-semibold tracking-[0.14em] text-accent-text uppercase">
+        Calendar // Syncing
+      </p>
+      <p className="mt-3 text-sm text-secondary">Atlas is securely retrieving your next seven days.</p>
+    </div>
   );
 }
 

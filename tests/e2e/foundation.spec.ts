@@ -40,6 +40,24 @@ test('health endpoint responds without revealing configuration', async ({ reques
   expect(body).not.toHaveProperty('version');
 });
 
+test('PWA manifest uses standalone mode and canonical Atlas icons', async ({ request }) => {
+  const response = await request.get('/manifest.webmanifest');
+  expect(response.status()).toBe(200);
+  const manifest = await response.json();
+  expect(manifest).toMatchObject({
+    name: "Mad's Atlas",
+    short_name: 'Atlas',
+    start_url: '/',
+    display: 'standalone',
+  });
+  expect(manifest.icons).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ src: '/icons/atlas-192.png' }),
+      expect.objectContaining({ src: '/icons/atlas-maskable-512.png', purpose: 'maskable' }),
+    ]),
+  );
+});
+
 test.describe('unauthenticated access', () => {
   test('every protected route redirects to sign-in', async ({ page }) => {
     // Server-side enforcement: the redirect comes from requireOwner() in the
@@ -70,6 +88,19 @@ test.describe('sign-in', () => {
     await page.goto('/sign-in');
     await expect(page.getByText(/single authorised account/i)).toBeVisible();
     await expect(page.getByRole('button', { name: /continue with google/i })).toBeVisible();
+  });
+
+  test('includes iPhone standalone and Apple icon metadata', async ({ page }) => {
+    await page.goto('/sign-in');
+    await expect(page.locator('link[rel="manifest"]')).toHaveAttribute('href', '/manifest.webmanifest');
+    await expect(page.locator('link[rel="apple-touch-icon"]')).toHaveAttribute(
+      'href',
+      '/icons/apple-touch-icon.png',
+    );
+    await expect(page.locator('meta[name="apple-mobile-web-app-capable"]')).toHaveAttribute(
+      'content',
+      'yes',
+    );
   });
 
   test('says plainly that Atlas cannot send email', async ({ page }) => {

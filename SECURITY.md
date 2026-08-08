@@ -31,8 +31,8 @@ model can be manipulated.
 *Someone reaches protected data without a valid session.*
 
 - Server-side session verification on **every** protected request, in the route
-  handler or server component — not only in middleware.
-- Middleware is a convenience redirect, never the control.
+  handler or server component — not only in the request proxy.
+- The request proxy is a session-refresh convenience, never the control.
 - RLS means even a forged client request returns nothing.
 - Cookies are `httpOnly`, `secure`, `sameSite=lax`.
 

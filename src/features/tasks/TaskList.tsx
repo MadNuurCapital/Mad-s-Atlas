@@ -67,7 +67,7 @@ export function TaskList({
               type="button"
               onClick={() => toggle(task)}
               // A 44px target: the row is compact, but the control is not.
-              className="mt-px grid size-6 shrink-0 place-items-center rounded-full text-tertiary transition-colors hover:text-accent-text"
+              className="-my-2 -ml-2 grid size-11 shrink-0 place-items-center rounded-full text-tertiary transition-colors hover:bg-surface-overlay hover:text-accent-text"
               aria-label={done ? `Reopen ${task.title}` : `Complete ${task.title}`}
             >
               {done ? (

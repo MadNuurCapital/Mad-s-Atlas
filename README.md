@@ -110,6 +110,15 @@ Google Calendar API · Netlify · Zod · Vitest · Playwright
 Authentication uses `@supabase/ssr`. The deprecated Supabase Auth Helpers are
 not used.
 
+### iPhone / PWA
+
+Atlas ships an App Router web manifest, Apple standalone metadata, safe-area
+layout support, and canonical regular/maskable icons adapted from the official
+gold A + orbit artwork. It intentionally has no offline service worker: private
+calendar, memory, research, and authenticated server-rendered content must not
+be cached indiscriminately. Add the production site to the iPhone Home Screen
+for the standalone application viewport.
+
 ---
 
 ## Documentation

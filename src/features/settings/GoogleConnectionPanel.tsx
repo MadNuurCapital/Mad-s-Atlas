@@ -63,7 +63,7 @@ export function GoogleConnectionPanel({ connection }: { connection: ConnectionSt
           icon={CalendarDays}
           title="Google Calendar"
           ready={calendarReady}
-          description="Read your agenda; proposed event writes always wait for approval."
+          description="Read your agenda and create events directly when you ask Atlas."
         />
         <Capability
           icon={Mail}
