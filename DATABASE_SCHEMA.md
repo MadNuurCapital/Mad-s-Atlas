@@ -94,6 +94,11 @@ auth.users (Supabase-managed)
 │
 ├─1:N─ research_reports ──1:N─ research_sources
 ├─1:N─ daily_briefings              UNIQUE (user_id, briefing_date, timezone)
+├─1:N─ learning_items ──self─ superseded_by
+├─1:N─ learning_feedback
+├─1:N─ atlas_adaptations
+├─1:N─ system_metrics
+├─1:N─ evolution_proposals
 └─1:N─ notification_subscriptions
 
 private.allowed_users               signup allowlist, checked by auth hook
@@ -143,6 +148,17 @@ Makes scheduled work idempotent and non-overlapping.
 ---
 
 ## `public` schema
+
+### Learning and evolution tables
+
+Migration `20260808000013_learning_evolution.sql` adds five owner-scoped tables.
+`learning_items` stores typed observations/inferences with bounded evidence,
+confidence, lifecycle and contradiction history. `learning_feedback` is an
+immutable review trail. `atlas_adaptations` holds reversible low-risk behavior
+changes. `system_metrics` contains content-free aggregate health windows and is
+client read-only. `evolution_proposals` stores inert, reviewable improvement
+briefs; it cannot execute them. See [LEARNING_EVOLUTION.md](./LEARNING_EVOLUTION.md)
+for thresholds, decay, costs and operational safeguards.
 
 ### `profiles`
 

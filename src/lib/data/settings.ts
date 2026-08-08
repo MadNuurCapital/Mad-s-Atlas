@@ -25,6 +25,14 @@ export const getSettings = cache(async (): Promise<UserSettings | null> => {
   return (data as UserSettings | null) ?? null;
 });
 
+export const getLearningPauseState = cache(async (): Promise<boolean> => {
+  const settings = await getSettings();
+  return Boolean(
+    settings?.learning_paused_until &&
+      Date.parse(settings.learning_paused_until) > Date.now(),
+  );
+});
+
 export type ConnectionStatus = {
   provider: string;
   email: string;
@@ -91,6 +99,11 @@ const COUNTED_TABLES = [
   'action_logs',
   'conversations',
   'research_reports',
+  'learning_items',
+  'learning_feedback',
+  'atlas_adaptations',
+  'system_metrics',
+  'evolution_proposals',
 ] as const;
 
 type CountedTable = (typeof COUNTED_TABLES)[number];
@@ -104,6 +117,11 @@ const TABLE_LABEL: Record<CountedTable, string> = {
   action_logs: 'Action log entries',
   conversations: 'Conversations',
   research_reports: 'Research reports',
+  learning_items: 'Learned observations and patterns',
+  learning_feedback: 'Learning feedback',
+  atlas_adaptations: 'Atlas adaptations',
+  system_metrics: 'Aggregate health metrics',
+  evolution_proposals: 'Evolution proposals',
 };
 
 /** Mirrors DATA_RETENTION.md. If one changes, change both in the same commit. */
@@ -116,6 +134,11 @@ const TABLE_RETENTION: Record<CountedTable, string> = {
   action_logs: '365 days',
   conversations: 'Your retention setting',
   research_reports: 'Kept until you delete them',
+  learning_items: 'Until dismissed or learning reset',
+  learning_feedback: 'Until learning reset',
+  atlas_adaptations: 'Until reverted or learning reset',
+  system_metrics: 'Until learning reset',
+  evolution_proposals: 'Until dismissed or learning reset',
 };
 
 export async function getStoredDataSummary(): Promise<StoredDataSummary[]> {

@@ -45,6 +45,10 @@ changes, the other changes in the same commit.
 | Daily briefings | 90 days | `maintenance` |
 | Google tokens | Until disconnect or revocation | — |
 | Push subscriptions | Until unsubscribed | — |
+| Learning observations and inferences | Until dismissed/reset; stale unconfirmed items retire after decay | `learning-reflection` |
+| Learning feedback | Until learning reset or account deletion | Owner control |
+| Aggregate system metrics | Used as bounded health history; deletable by learning reset | `learning-reflection` |
+| Adaptations and evolution proposals | Until reverted, dismissed or learning reset | Owner control |
 
 Action logs get the longest window on purpose: they are the record of what Atlas
 did on Muhammad's behalf, they contain no sensitive content by construction, and
@@ -122,6 +126,11 @@ is inactive.
 | `notification_enabled` | **off** | on/off — requires browser permission |
 | `approval_expiry_minutes` | 60 | 5–1440 |
 | `meeting_prep_lead_minutes` | 30 | 5–240 |
+| `learning_enabled` | on | on/off |
+| `proactive_suggestions_enabled` | on | on/off |
+| `workflow_learning_enabled` | on | on/off |
+| `system_diagnostics_enabled` | on | on/off |
+| `automatic_adaptations_enabled` | **off** | on/off; low-risk and reversible only |
 
 Notifications default to off because they require an explicit browser permission
 prompt, and a default-on setting that silently does nothing would be dishonest.
@@ -134,7 +143,8 @@ prompt, and a default-on setting that silently does nothing would be dishonest.
 
 Produces a single JSON file containing profile and settings, all memories with
 version history, tasks, reminders, ideas, approvals, action logs, conversations
-and summaries, research reports with sources, and daily briefings.
+and summaries, research reports with sources, daily briefings, and the additive
+learning/evolution export from `export_learning_data()`.
 
 **Excluded by construction, not by filtering:** encrypted token columns, the
 encryption key, API keys, push subscription secrets. `export_all_user_data()`
@@ -153,6 +163,8 @@ from a private Storage bucket.
 - **A task, reminder or idea** — soft delete where applicable
 - **A conversation** — deletes it and its messages immediately
 - **A research report** — deletes it and its sources
+- **Inferred learning** — two-step reset deletes learning, metrics, adaptations
+  and proposals while preserving confirmed Memory and operational data
 
 ### Complete
 

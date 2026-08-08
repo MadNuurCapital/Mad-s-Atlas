@@ -93,6 +93,12 @@ export async function seedUsers(client: Client): Promise<void> {
 /** Remove everything both test users own, in foreign-key-safe order. */
 export async function cleanup(client: Client): Promise<void> {
   const ids = [OWNER_ID, INTRUDER_ID];
+  await client.query('delete from public.learning_feedback where user_id = any($1)', [ids]);
+  await client.query('delete from public.atlas_adaptations where user_id = any($1)', [ids]);
+  await client.query('delete from public.evolution_proposals where user_id = any($1)', [ids]);
+  await client.query('delete from public.system_metrics where user_id = any($1)', [ids]);
+  await client.query('update public.learning_items set superseded_by = null where user_id = any($1)', [ids]);
+  await client.query('delete from public.learning_items where user_id = any($1)', [ids]);
   await client.query('delete from public.conversation_messages where user_id = any($1)', [ids]);
   await client.query('delete from public.conversations where user_id = any($1)', [ids]);
   await client.query('delete from public.memory_versions where user_id = any($1)', [ids]);

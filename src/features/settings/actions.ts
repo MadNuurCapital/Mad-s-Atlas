@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { requireOwner } from '@/lib/auth/owner';
 import { logAction } from '@/lib/data/action-log';
 import { createClient } from '@/lib/supabase/server';
+import type { UserSettings } from '@/types/database';
 
 export type SettingsActionResult = { ok: true } | { ok: false; error: string };
 
@@ -85,6 +86,49 @@ export async function setMemoryEnabled(enabled: boolean): Promise<SettingsAction
 
   revalidatePath('/settings');
   revalidatePath('/memory');
+  return { ok: true };
+}
+
+type LearningToggle =
+  | 'learning_enabled'
+  | 'proactive_suggestions_enabled'
+  | 'workflow_learning_enabled'
+  | 'system_diagnostics_enabled'
+  | 'automatic_adaptations_enabled';
+
+async function setLearningToggle(field: LearningToggle, enabled: boolean): Promise<SettingsActionResult> {
+  const { user } = await requireOwner();
+  const parsed = toggleSchema.safeParse(enabled);
+  if (!parsed.success) return { ok: false, error: 'That learning setting was not valid.' };
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('user_settings')
+    .update({ [field]: parsed.data, ...(field === 'learning_enabled' && parsed.data ? { learning_paused_until: null } : {}) })
+    .eq('user_id', user.id)
+    .select('*')
+    .single();
+  if (error || (data as UserSettings | null)?.[field] !== parsed.data) {
+    return { ok: false, error: 'Atlas could not save that learning setting.' };
+  }
+  await logAction({ toolName: `settings.${field}`, operationType: 'execute', actionSummary: `Updated ${field.replaceAll('_', ' ')}`, status: 'success' });
+  revalidatePath('/settings');
+  revalidatePath('/evolution');
+  return { ok: true };
+}
+
+export async function setLearningEnabled(enabled: boolean) { return setLearningToggle('learning_enabled', enabled); }
+export async function setProactiveSuggestionsEnabled(enabled: boolean) { return setLearningToggle('proactive_suggestions_enabled', enabled); }
+export async function setWorkflowLearningEnabled(enabled: boolean) { return setLearningToggle('workflow_learning_enabled', enabled); }
+export async function setSystemDiagnosticsEnabled(enabled: boolean) { return setLearningToggle('system_diagnostics_enabled', enabled); }
+export async function setAutomaticAdaptationsEnabled(enabled: boolean) { return setLearningToggle('automatic_adaptations_enabled', enabled); }
+
+export async function pauseLearningFor24Hours(): Promise<SettingsActionResult> {
+  const { user } = await requireOwner();
+  const until = new Date(Date.now() + 24 * 60 * 60_000).toISOString();
+  const supabase = await createClient();
+  const { error } = await supabase.from('user_settings').update({ learning_paused_until: until }).eq('user_id', user.id);
+  if (error) return { ok: false, error: 'Atlas could not pause learning.' };
+  revalidatePath('/settings');
   return { ok: true };
 }
 

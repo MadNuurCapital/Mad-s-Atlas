@@ -6,6 +6,7 @@ import { registerAllTools } from '@/lib/atlas/tools/definitions';
 import { decidePermission, getTool } from '@/lib/atlas/tools/registry';
 import { requireOwnerApi } from '@/lib/auth/owner';
 import { logAction } from '@/lib/data/action-log';
+import { observeToolOutcome } from '@/lib/data/evolution';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -52,6 +53,7 @@ export async function POST(request: Request) {
       status: 'refused',
       errorCode: decision.outcome,
     });
+
     return NextResponse.json({ ok: false, error: message }, { status: 403 });
   }
 
@@ -126,6 +128,7 @@ export async function POST(request: Request) {
       durationMs: Date.now() - startedAt,
       metadata: { channel: 'voice' },
     });
+    await observeToolOutcome(auth.session.user.id, toolName, result.ok).catch(() => undefined);
 
     if (!result.ok) {
       return NextResponse.json({ ok: false, error: result.message }, { status: 422 });

@@ -5,6 +5,7 @@ import { requireOwnerApi } from '@/lib/auth/owner';
 import { checkVoiceBudget } from '@/lib/atlas/permissions/rate-limit';
 import { logAction } from '@/lib/data/action-log';
 import { getProfile } from '@/lib/data/settings';
+import { getActiveBehavioralContext } from '@/lib/data/evolution';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -51,12 +52,17 @@ export async function POST() {
   }
 
   try {
-    const [result, profile] = await Promise.all([createLiveToken(), getProfile()]);
+    const [result, profile, adaptiveInstructions] = await Promise.all([
+      createLiveToken(),
+      getProfile(),
+      getActiveBehavioralContext().catch(() => []),
+    ]);
     const response = {
       ...result,
       sessionConfig: {
         ...result.sessionConfig,
         preferredName: profile?.preferred_name ?? 'Mad',
+        adaptiveInstructions,
       },
     };
 

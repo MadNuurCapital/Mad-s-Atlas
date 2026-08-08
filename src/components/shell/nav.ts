@@ -1,5 +1,6 @@
 import {
   BellRing,
+  BrainCircuit,
   CalendarDays,
   CheckSquare,
   Clock,
@@ -22,7 +23,7 @@ export type NavItem = {
 };
 
 /**
- * The eleven application routes.
+ * The application routes.
  *
  * Order is deliberate: it follows the rhythm of a day — orient, talk, then the
  * domains, then oversight, then configuration.
@@ -99,6 +100,13 @@ export const NAV_ITEMS: readonly NavItem[] = [
     description: 'What Atlas has done',
   },
   {
+    href: '/evolution',
+    label: 'Evolution',
+    icon: BrainCircuit,
+    group: 'secondary',
+    description: 'Learning, health and improvements',
+  },
+  {
     href: '/settings',
     label: 'Settings',
     icon: Settings,
@@ -113,7 +121,7 @@ export const PRIMARY_NAV_ITEMS = NAV_ITEMS.filter((item) => item.group === 'prim
 /**
  * Everything else, reachable on mobile through the More sheet.
  *
- * Six routes — Settings among them — had no mobile entry point at all before
+ * Secondary routes — Settings among them — had no mobile entry point at all before
  * this existed. A bottom bar holds five items; that is a layout limit, not a
  * reason to make Google connection unreachable from a phone.
  */

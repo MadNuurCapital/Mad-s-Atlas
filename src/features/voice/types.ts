@@ -44,6 +44,7 @@ export type LiveTokenResponse = {
     expiresAt: string;
     newSessionExpiresAt: string;
     preferredName?: string;
+    adaptiveInstructions?: string[];
     voice: string;
   };
 };
