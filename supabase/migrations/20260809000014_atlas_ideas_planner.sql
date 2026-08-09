@@ -215,15 +215,29 @@ security definer
 set search_path = ''
 as $$
 declare
-  v_idea_id uuid;
+  v_new_idea_id uuid;
+  v_old_idea_id uuid;
 begin
-  v_idea_id := coalesce(new.idea_id, old.idea_id);
-  if v_idea_id is not null then
-    update public.ideas set last_touched_at = now() where id = v_idea_id;
-  end if;
   if tg_op = 'DELETE' then
+    v_old_idea_id := old.idea_id;
+    if v_old_idea_id is not null then
+      update public.ideas set last_touched_at = now() where id = v_old_idea_id;
+    end if;
     return old;
   end if;
+
+  v_new_idea_id := new.idea_id;
+  if v_new_idea_id is not null then
+    update public.ideas set last_touched_at = now() where id = v_new_idea_id;
+  end if;
+
+  if tg_op = 'UPDATE' then
+    v_old_idea_id := old.idea_id;
+    if v_old_idea_id is not null and v_old_idea_id is distinct from v_new_idea_id then
+      update public.ideas set last_touched_at = now() where id = v_old_idea_id;
+    end if;
+  end if;
+
   return new;
 end;
 $$;
@@ -239,13 +253,11 @@ create trigger idea_notes_touch_parent
 drop trigger if exists tasks_touch_parent_idea on public.tasks;
 create trigger tasks_touch_parent_idea
   after insert or update or delete on public.tasks
-  for each row when (coalesce(new.idea_id, old.idea_id) is not null)
-  execute function private.touch_parent_idea();
+  for each row execute function private.touch_parent_idea();
 drop trigger if exists reminders_touch_parent_idea on public.reminders;
 create trigger reminders_touch_parent_idea
   after insert or update or delete on public.reminders
-  for each row when (coalesce(new.idea_id, old.idea_id) is not null)
-  execute function private.touch_parent_idea();
+  for each row execute function private.touch_parent_idea();
 
 alter table public.idea_steps enable row level security;
 alter table public.idea_notes enable row level security;
