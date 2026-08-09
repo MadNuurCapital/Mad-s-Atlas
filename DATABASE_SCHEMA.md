@@ -84,7 +84,8 @@ auth.users (Supabase-managed)
 │
 ├─1:N─ tasks ◄──0:1── reminders.related_task_id
 ├─1:N─ reminders
-├─1:N─ ideas
+├─1:N─ ideas ──1:N─ idea_steps ──0:1─► tasks / reminders / Google event ID
+│                └─1:N─ idea_notes
 │
 ├─1:N─ approvals ◄──0:1── action_logs.approval_id
 ├─1:N─ action_logs
@@ -159,6 +160,25 @@ changes. `system_metrics` contains content-free aggregate health windows and is
 client read-only. `evolution_proposals` stores inert, reviewable improvement
 briefs; it cannot execute them. See [LEARNING_EVOLUTION.md](./LEARNING_EVOLUTION.md)
 for thresholds, decay, costs and operational safeguards.
+
+### Ideas & Planner
+
+Migration `20260809000014_atlas_ideas_planner.sql` extends Ideas without adding
+a parallel project-management system. `ideas.original_capture` is immutable.
+An Idea stores Atlas Understanding, owner instructions, a draft plan version,
+and its single next action. Status is one of `captured`, `planned`,
+`in_progress`, `completed`, or `archived`.
+
+`idea_steps` contains ordered, owner-scoped steps and optional links to the
+existing Task, Reminder, and one deterministic Google Calendar event. Completed
+steps survive re-planning. Notification timestamps independently guard the
+upcoming, execute, and one plan-check alert. `idea_notes` stays local to its
+Idea and is not copied into global Memory.
+
+Composite `(id, user_id)` foreign keys prevent a child from linking to another
+owner's Idea, Task, Reminder, or step even if a UUID were somehow known. Both
+tables have full owner-only RLS. Stale cleanup is a query over
+`last_touched_at`; no scheduled function permanently deletes Ideas.
 
 ### `profiles`
 

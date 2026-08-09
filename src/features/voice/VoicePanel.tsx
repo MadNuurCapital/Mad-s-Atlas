@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'motion/react';
-import { LockKeyhole, Mic, MicOff, Square } from 'lucide-react';
+import { LockKeyhole, Mic, MicOff, Radio, Square } from 'lucide-react';
 
 import { AtlasCore } from '@/features/voice/AtlasCore';
 import { OrbitField, type OrbitNode } from '@/features/voice/OrbitField';
@@ -18,11 +18,25 @@ import { cn } from '@/lib/cn';
  * is recording is a privacy problem wearing a nice animation.
  */
 export function VoicePanel({ nodes = [] }: { nodes?: OrbitNode[] }) {
-  const { state, error, stream, outputLevel, transcript, start, stop } = useVoiceSession();
+  const {
+    state,
+    error,
+    stream,
+    outputLevel,
+    transcript,
+    focusMode,
+    holdingToTalk,
+    start,
+    stop,
+    interrupt,
+    setFocusMode,
+    beginHoldToTalk,
+    endHoldToTalk,
+  } = useVoiceSession();
 
   const live = state === 'listening';
   const active = state !== 'idle' && state !== 'error';
-  const microphoneOn = Boolean(stream) && active;
+  const microphoneOn = Boolean(stream) && active && (!focusMode || holdingToTalk);
 
   const stateDescription =
     state === 'requesting_permission'
@@ -30,13 +44,15 @@ export function VoicePanel({ nodes = [] }: { nodes?: OrbitNode[] }) {
       : state === 'connecting' || state === 'reconnecting'
         ? 'Opening the private voice channel. Your audio is not being sent yet.'
         : state === 'listening'
-          ? 'Your microphone is on. Speak naturally.'
+          ? focusMode && !holdingToTalk
+            ? 'Focus mode is on. Hold the button when you want to speak.'
+            : 'Your microphone is on. Speak naturally.'
           : state === 'understanding'
             ? 'Atlas is processing what you said. You can continue naturally.'
             : state === 'using_tool'
               ? 'Atlas is carrying out the requested tool action.'
               : state === 'speaking'
-                ? 'Atlas is responding. You can interrupt at any time.'
+                ? 'Atlas is responding. Your microphone is paused; tap the core to interrupt.'
                 : 'Your microphone is off. Atlas is not listening.';
 
   return (
@@ -47,7 +63,12 @@ export function VoicePanel({ nodes = [] }: { nodes?: OrbitNode[] }) {
       </div>
 
       <OrbitField nodes={nodes}>
-        <AtlasCore state={state} stream={stream} outputLevel={outputLevel} />
+        <AtlasCore
+          state={state}
+          stream={microphoneOn ? stream : null}
+          outputLevel={outputLevel}
+          onInterrupt={interrupt}
+        />
       </OrbitField>
 
       {/* Status. aria-live so a screen reader hears the state change too. */}
@@ -105,6 +126,45 @@ export function VoicePanel({ nodes = [] }: { nodes?: OrbitNode[] }) {
           </motion.button>
         )}
       </div>
+
+      {active ? (
+        <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+          <button
+            type="button"
+            onClick={() => setFocusMode(!focusMode)}
+            className="inline-flex min-h-10 items-center gap-2 rounded-full border border-line px-4 text-xs font-medium text-secondary"
+          >
+            <Radio aria-hidden className="size-3.5" />
+            {focusMode ? 'Focus mode' : 'Hands-free'}
+          </button>
+          {focusMode ? (
+            <button
+              type="button"
+              onPointerDown={(event) => {
+                event.currentTarget.setPointerCapture(event.pointerId);
+                beginHoldToTalk();
+              }}
+              onPointerUp={endHoldToTalk}
+              onPointerCancel={endHoldToTalk}
+              onKeyDown={(event) => {
+                if ((event.key === ' ' || event.key === 'Enter') && !event.repeat) beginHoldToTalk();
+              }}
+              onKeyUp={(event) => {
+                if (event.key === ' ' || event.key === 'Enter') endHoldToTalk();
+              }}
+              className={cn(
+                'inline-flex min-h-10 select-none items-center gap-2 rounded-full border px-4 text-xs font-medium',
+                holdingToTalk
+                  ? 'border-accent/50 bg-surface-accent text-accent-text'
+                  : 'border-line bg-surface-raised text-secondary',
+              )}
+            >
+              <Mic aria-hidden className="size-3.5" />
+              {holdingToTalk ? 'Listening…' : 'Hold to talk'}
+            </button>
+          ) : null}
+        </div>
+      ) : null}
 
       {error ? (
         <motion.p

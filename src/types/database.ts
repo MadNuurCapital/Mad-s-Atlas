@@ -43,12 +43,12 @@ export type DeliveryChannel = 'push' | 'in_app' | 'calendar';
 
 export type IdeaStatus =
   | 'captured'
-  | 'exploring'
   | 'planned'
-  | 'building'
+  | 'in_progress'
   | 'completed'
-  | 'parked'
   | 'archived';
+
+export type IdeaStepStatus = 'pending' | 'in_progress' | 'completed' | 'skipped';
 
 export type ApprovalStatus = 'pending' | 'approved' | 'rejected' | 'expired' | 'executed' | 'failed';
 export type OperationType = 'read' | 'analyse' | 'propose' | 'execute' | 'refuse';
@@ -254,6 +254,9 @@ export type Task = Timestamps & {
   related_project: string | null;
   recurrence_rule: string | null;
   google_calendar_event_id: string | null;
+  idea_id: string | null;
+  idea_step_id: string | null;
+  needs_attention_at: string | null;
   deleted_at: string | null;
 };
 
@@ -269,6 +272,8 @@ export type Reminder = Timestamps & {
   status: ReminderStatus;
   related_task_id: string | null;
   google_calendar_event_id: string | null;
+  idea_id: string | null;
+  idea_step_id: string | null;
   last_triggered_at: string | null;
   next_trigger_at: string | null;
 };
@@ -279,11 +284,55 @@ export type Idea = Timestamps & {
   title: string;
   original_capture: string;
   summary: string | null;
+  understanding: string | null;
+  instructions: Json;
   category: string | null;
   status: IdeaStatus;
   next_action: string | null;
+  next_action_at: string | null;
+  next_action_duration_minutes: number | null;
   structured_plan: Json;
+  plan_version: number;
+  approved_at: string | null;
+  completed_at: string | null;
+  last_touched_at: string;
   archived_at: string | null;
+  archived_from_status: Exclude<IdeaStatus, 'archived'> | null;
+  deleted_at: string | null;
+  pending_approval_id: string | null;
+};
+
+export type IdeaStep = Timestamps & {
+  id: string;
+  user_id: string;
+  idea_id: string;
+  position: number;
+  title: string;
+  description: string | null;
+  status: IdeaStepStatus;
+  required: boolean;
+  duration_minutes: number;
+  scheduled_start: string | null;
+  scheduled_end: string | null;
+  task_id: string | null;
+  reminder_id: string | null;
+  google_calendar_event_id: string | null;
+  completed_at: string | null;
+  needs_attention_at: string | null;
+  notify_upcoming: boolean;
+  notify_execute: boolean;
+  notify_plan_check: boolean;
+  upcoming_notified_at: string | null;
+  execute_notified_at: string | null;
+  plan_check_notified_at: string | null;
+  plan_version: number;
+};
+
+export type IdeaNote = Timestamps & {
+  id: string;
+  user_id: string;
+  idea_id: string;
+  content: string;
 };
 
 export type Approval = Timestamps & {
@@ -438,6 +487,8 @@ export type Database = {
       tasks: Table<Task>;
       reminders: Table<Reminder>;
       ideas: Table<Idea>;
+      idea_steps: Table<IdeaStep>;
+      idea_notes: Table<IdeaNote>;
       approvals: Table<Approval>;
       action_logs: Table<ActionLog>;
       tool_runs: Table<ToolRun>;

@@ -23,6 +23,8 @@ type Props = {
   stream: MediaStream | null;
   /** RMS of Atlas's real PCM response audio, normalised to 0..1. */
   outputLevel: number;
+  /** Speaking-only action: stop Atlas output and return to listening. */
+  onInterrupt?: () => void;
 };
 
 /** Colour per state. Gold is the brand accent; it earns its place by meaning something. */
@@ -38,7 +40,7 @@ const STATE_TINT: Record<VoiceState, string> = {
   error: 'var(--color-critical)',
 };
 
-export function AtlasCore({ state, stream, outputLevel }: Props) {
+export function AtlasCore({ state, stream, outputLevel, onInterrupt }: Props) {
   const reduceMotion = useReducedMotion();
 
   /**
@@ -125,7 +127,16 @@ export function AtlasCore({ state, stream, outputLevel }: Props) {
   const ringGlow = useTransform(smooth, (v) => `0 0 ${20 + v * 50}px -8px ${tint}`);
 
   return (
-    <div className="relative grid aspect-square w-full max-w-[19rem] place-items-center sm:max-w-[23rem]">
+    <button
+      type="button"
+      onClick={state === 'speaking' ? onInterrupt : undefined}
+      disabled={state !== 'speaking'}
+      aria-label={state === 'speaking' ? 'Interrupt Atlas' : 'Atlas voice status'}
+      className={cn(
+        'relative grid aspect-square w-full max-w-[19rem] place-items-center rounded-full sm:max-w-[23rem]',
+        state === 'speaking' && 'cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent',
+      )}
+    >
       {/* Outer field — widens with volume, so loudness reads as presence. */}
       <motion.div
         aria-hidden
@@ -171,6 +182,6 @@ export function AtlasCore({ state, stream, outputLevel }: Props) {
           className="pointer-events-none absolute inset-0 rounded-full ring-1 ring-inset ring-accent/25"
         />
       </motion.div>
-    </div>
+    </button>
   );
 }

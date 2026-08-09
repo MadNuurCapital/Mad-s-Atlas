@@ -88,6 +88,10 @@ describe('registered tools carry the right permission levels', () => {
     expect(decidePermission('reminders.create')).toEqual({ outcome: 'allow', level: 1 });
     expect(decidePermission('ideas.list')).toEqual({ outcome: 'allow', level: 1 });
     expect(decidePermission('ideas.capture')).toEqual({ outcome: 'allow', level: 1 });
+    expect(decidePermission('ideas.propose_plan')).toEqual({ outcome: 'allow', level: 1 });
+    expect(decidePermission('ideas.approve_plan')).toEqual({ outcome: 'allow', level: 1 });
+    expect(decidePermission('ideas.execute_plan')).toEqual({ outcome: 'require_approval', level: 2 });
+    expect(decidePermission('ideas.execute_delete')).toEqual({ outcome: 'require_approval', level: 2 });
     expect(decidePermission('calendar.execute_create')).toEqual({ outcome: 'allow', level: 1 });
     expect(decidePermission('memory.search')).toEqual({ outcome: 'allow', level: 1 });
     expect(decidePermission('memory.remember')).toEqual({ outcome: 'allow', level: 1 });

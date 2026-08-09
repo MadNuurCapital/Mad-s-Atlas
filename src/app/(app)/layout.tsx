@@ -1,6 +1,7 @@
 import { Suspense, type ReactNode } from 'react';
 
 import { BottomNav } from '@/components/shell/BottomNav';
+import { PwaBootstrap } from '@/components/pwa/PwaBootstrap';
 import { Sidebar } from '@/components/shell/Sidebar';
 import { SidebarProfile, SidebarProfileFallback } from '@/components/shell/SidebarProfile';
 import { requireOwner } from '@/lib/auth/owner';
@@ -18,6 +19,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="atlas-safe-inline atlas-safe-top flex min-h-dvh bg-transparent">
+      <PwaBootstrap />
       <Sidebar
         profile={
           <Suspense fallback={<SidebarProfileFallback />}>

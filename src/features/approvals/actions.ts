@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 
 import { requireOwner } from '@/lib/auth/owner';
-import { executeApproval } from '@/lib/atlas/approvals/service';
+import { approveAndExecuteApproval, executeApproval } from '@/lib/atlas/approvals/service';
 import { logAction } from '@/lib/data/action-log';
 import { createClient } from '@/lib/supabase/server';
 import { idSchema } from '@/lib/validation/schemas';
@@ -75,6 +75,27 @@ export async function execute(formData: FormData): Promise<ApprovalActionResult>
   const outcome = await executeApproval(parsed.data.id);
   revalidatePath('/approvals');
   revalidatePath('/history');
+
+  return outcome.ok ? { ok: true, message: outcome.summary } : { ok: false, error: outcome.message };
+}
+
+/** One explicit click for an already reviewed compound Idea operation. */
+export async function approveAndExecute(formData: FormData): Promise<ApprovalActionResult> {
+  await requireOwner();
+
+  const parsed = idSchema.safeParse({ id: formData.get('id') });
+  if (!parsed.success) return { ok: false, error: 'That approval could not be identified.' };
+
+  const outcome = await approveAndExecuteApproval(parsed.data.id, [
+    'ideas.execute_plan',
+    'ideas.execute_delete',
+  ]);
+  revalidatePath('/approvals');
+  revalidatePath('/history');
+  revalidatePath('/ideas');
+  revalidatePath('/tasks');
+  revalidatePath('/reminders');
+  revalidatePath('/today');
 
   return outcome.ok ? { ok: true, message: outcome.summary } : { ok: false, error: outcome.message };
 }

@@ -12,6 +12,7 @@ import {
   createToolResponseMessage,
   downsampleAudio,
   floatAudioToPcm16,
+  normaliseAtlasAddress,
   type GeminiFunctionResponse,
   parseLiveServerMessage,
   sampleRateFromMimeType,
@@ -42,6 +43,8 @@ export function useVoiceSession() {
   const [error, setError] = useState<string | null>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [outputLevel, setOutputLevel] = useState(0);
+  const [focusMode, setFocusModeState] = useState(false);
+  const [holdingToTalk, setHoldingToTalkState] = useState(false);
 
   const streamRef = useRef<MediaStream | null>(null);
   const socketRef = useRef<WebSocket | null>(null);
@@ -53,6 +56,8 @@ export function useVoiceSession() {
   const startInFlightRef = useRef(false);
   const sessionReadyRef = useRef(false);
   const toolResponsesRef = useRef(new Map<string, GeminiFunctionResponse>());
+  const focusModeRef = useRef(false);
+  const holdingToTalkRef = useRef(false);
 
   const audioPipelineRef = useRef<AudioPipeline | null>(null);
   const playbackSourcesRef = useRef(new Set<AudioBufferSourceNode>());
@@ -71,6 +76,32 @@ export function useVoiceSession() {
     nextPlaybackTimeRef.current = 0;
     setOutputLevel(0);
   }, []);
+
+  const setFocusMode = useCallback((enabled: boolean) => {
+    focusModeRef.current = enabled;
+    holdingToTalkRef.current = false;
+    setFocusModeState(enabled);
+    setHoldingToTalkState(false);
+  }, []);
+
+  const beginHoldToTalk = useCallback(() => {
+    if (!focusModeRef.current || !sessionReadyRef.current) return;
+    clearPlayback();
+    holdingToTalkRef.current = true;
+    setHoldingToTalkState(true);
+    setState('listening');
+  }, [clearPlayback]);
+
+  const endHoldToTalk = useCallback(() => {
+    holdingToTalkRef.current = false;
+    setHoldingToTalkState(false);
+  }, []);
+
+  const interrupt = useCallback(() => {
+    if (!sessionReadyRef.current) return;
+    clearPlayback();
+    setState('listening');
+  }, [clearPlayback]);
 
   const releaseAudio = useCallback(() => {
     clearPlayback();
@@ -214,7 +245,13 @@ export function useVoiceSession() {
 
     processor.onaudioprocess = (event) => {
       const socket = socketRef.current;
-      if (!sessionReadyRef.current || !socket || socket.readyState !== WebSocket.OPEN) return;
+      if (
+        !sessionReadyRef.current ||
+        !socket ||
+        socket.readyState !== WebSocket.OPEN ||
+        playbackSourcesRef.current.size > 0 ||
+        (focusModeRef.current && !holdingToTalkRef.current)
+      ) return;
 
       const channel = event.inputBuffer.getChannelData(0);
       const downsampled = downsampleAudio(channel, context.sampleRate);
@@ -230,6 +267,8 @@ export function useVoiceSession() {
 
   const stop = useCallback(() => {
     intentionalStopRef.current = true;
+    holdingToTalkRef.current = false;
+    setHoldingToTalkState(false);
     sessionReadyRef.current = false;
     startInFlightRef.current = false;
     credentialsRef.current = null;
@@ -310,7 +349,7 @@ export function useVoiceSession() {
 
         const inputText = content.inputTranscription?.text;
         if (inputText) {
-          appendTranscript('you', inputText);
+          appendTranscript('you', normaliseAtlasAddress(inputText));
           setState('understanding');
         }
 
@@ -402,6 +441,7 @@ export function useVoiceSession() {
       mediaStream = await navigator.mediaDevices.getUserMedia({
         audio: {
           autoGainControl: true,
+          channelCount: 1,
           echoCancellation: true,
           noiseSuppression: true,
         },
@@ -465,5 +505,20 @@ export function useVoiceSession() {
     [],
   );
 
-  return { state, transcript, error, stream, outputLevel, start, stop, setTranscript };
+  return {
+    state,
+    transcript,
+    error,
+    stream,
+    outputLevel,
+    focusMode,
+    holdingToTalk,
+    start,
+    stop,
+    interrupt,
+    setFocusMode,
+    beginHoldToTalk,
+    endHoldToTalk,
+    setTranscript,
+  };
 }

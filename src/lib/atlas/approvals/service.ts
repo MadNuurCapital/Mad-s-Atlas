@@ -81,6 +81,51 @@ export type ExecutionOutcome =
   | { ok: false; errorCode: string; message: string };
 
 /**
+ * Record one explicit decision and immediately run the already-hashed payload.
+ * Used by compound Idea plans so “Approve Plan” remains one action while the
+ * existing atomic claim still guarantees at-most-once execution.
+ */
+export async function approveAndExecuteApproval(
+  approvalId: string,
+  expectedActionType: string | readonly string[],
+): Promise<ExecutionOutcome> {
+  const supabase = await createClient();
+  const { data: approval, error: loadError } = await supabase
+    .from('approvals')
+    .select('id,action_type,status,expires_at')
+    .eq('id', approvalId)
+    .maybeSingle();
+
+  if (loadError || !approval) {
+    return { ok: false, errorCode: 'not_found', message: 'That approval could not be found.' };
+  }
+  const expected = Array.isArray(expectedActionType) ? expectedActionType : [expectedActionType];
+  if (!expected.includes(approval.action_type)) {
+    return { ok: false, errorCode: 'wrong_action', message: 'That approval is for a different action.' };
+  }
+  if (new Date(approval.expires_at) <= new Date()) {
+    return { ok: false, errorCode: 'expired', message: 'That approval has expired. Prepare the plan again.' };
+  }
+
+  if (approval.status === 'pending') {
+    const { data: approved, error } = await supabase
+      .from('approvals')
+      .update({ status: 'approved', approved_at: new Date().toISOString() })
+      .eq('id', approvalId)
+      .eq('status', 'pending')
+      .select('id')
+      .maybeSingle();
+    if (error || !approved) {
+      return { ok: false, errorCode: error?.code ?? 'approval_failed', message: 'Could not record that approval.' };
+    }
+  } else if (approval.status !== 'approved') {
+    return { ok: false, errorCode: 'not_pending', message: 'That proposal is no longer awaiting approval.' };
+  }
+
+  return executeApproval(approvalId);
+}
+
+/**
  * Execute an approved action, exactly once.
  *
  * The ordering here is the security property, and each step exists because

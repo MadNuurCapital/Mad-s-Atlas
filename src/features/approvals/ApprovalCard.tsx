@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react';
 
-import { approve, execute, reject } from '@/features/approvals/actions';
+import { approve, approveAndExecute, execute, reject } from '@/features/approvals/actions';
 import { cn } from '@/lib/cn';
 import { formatDateTime, formatRelative } from '@/lib/time';
 import type { Approval, ApprovalStatus } from '@/types/database';
@@ -36,6 +36,7 @@ export function ApprovalCard({ approval }: { approval: Approval }) {
   const expired = new Date(approval.expires_at) < new Date();
   const isPending = approval.status === 'pending' && !expired;
   const isApproved = approval.status === 'approved' && !expired;
+  const isCompoundIdeaAction = approval.action_type === 'ideas.execute_plan' || approval.action_type === 'ideas.execute_delete';
 
   function run(action: (fd: FormData) => Promise<{ ok: boolean; error?: string }>) {
     setError(null);
@@ -106,10 +107,16 @@ export function ApprovalCard({ approval }: { approval: Approval }) {
               <button
                 type="button"
                 disabled={pending}
-                onClick={() => run(approve)}
+                onClick={() => run(isCompoundIdeaAction ? approveAndExecute : approve)}
                 className="min-h-11 rounded-md bg-surface-accent px-4 text-sm font-medium text-accent-text transition-colors hover:bg-forest-700 disabled:opacity-60"
               >
-                Approve
+                {pending
+                  ? 'Running…'
+                  : approval.action_type === 'ideas.execute_plan'
+                    ? 'Approve Plan'
+                    : approval.action_type === 'ideas.execute_delete'
+                      ? 'Approve deletion'
+                      : 'Approve'}
               </button>
               <button
                 type="button"
