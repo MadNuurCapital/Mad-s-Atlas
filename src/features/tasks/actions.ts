@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 
 import { requireOwner } from '@/lib/auth/owner';
+import { completeIdeaStep } from '@/lib/atlas/planner/service';
 import { logAction } from '@/lib/data/action-log';
 import { createClient } from '@/lib/supabase/server';
 import {
@@ -105,14 +106,22 @@ export async function completeTask(formData: FormData): Promise<ActionResult> {
   if (!parsed.success) return { ok: false, error: 'That task could not be identified.' };
 
   const supabase = await createClient();
-  const { error } = await supabase
+  const { data: task, error } = await supabase
     .from('tasks')
     // completed_at must be set alongside the status — a CHECK constraint
     // enforces that the two agree.
     .update({ status: 'completed', completed_at: new Date().toISOString() })
-    .eq('id', parsed.data.id);
+    .eq('id', parsed.data.id)
+    .select('idea_id,idea_step_id')
+    .maybeSingle();
 
-  if (error) return { ok: false, error: 'Could not complete that task.' };
+  if (error || !task) return { ok: false, error: 'Could not complete that task.' };
+  if (task.idea_id && task.idea_step_id) {
+    const linked = await completeIdeaStep(task.idea_id, task.idea_step_id);
+    if (!linked.ok) return { ok: false, error: linked.message };
+    revalidatePath(`/ideas/${task.idea_id}`);
+    revalidatePath('/ideas');
+  }
 
   await logAction({
     toolName: 'tasks.complete',

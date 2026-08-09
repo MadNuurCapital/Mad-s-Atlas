@@ -4,6 +4,7 @@ import type { Metadata } from 'next';
 import { Card, Page, Section } from '@/components/ui/Page';
 import { GoogleConnectionPanel } from '@/features/settings/GoogleConnectionPanel';
 import { ProfileEditor } from '@/features/settings/ProfileEditor';
+import { PushNotificationControl } from '@/features/settings/PushNotificationControl';
 import {
   setAutomaticAdaptationsEnabled,
   setDailyBriefingEnabled,
@@ -119,6 +120,12 @@ export default async function SettingsPage() {
         </Card>
       </Section>
 
+      <Section title="Notifications" description="Private, device-specific alerts for reminders and approved plan sessions.">
+        <Card>
+          <PushNotificationControl vapidPublicKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? ''} />
+        </Card>
+      </Section>
+
       <Section
         title="Privacy"
         description="Everything Atlas holds about you, counted live from the database."
@@ -164,10 +171,6 @@ export default async function SettingsPage() {
           <Row
             label="Meeting preparation"
             value={`${settings?.meeting_prep_lead_minutes ?? 30} minutes before`}
-          />
-          <Row
-            label="Browser notifications"
-            value={settings?.notification_enabled ? 'Enabled' : 'Off — permission not granted'}
           />
         </Card>
       </Section>

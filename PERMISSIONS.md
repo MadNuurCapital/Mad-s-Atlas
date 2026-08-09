@@ -49,9 +49,9 @@ the functionality is absent.
 | Connect to Atlas DART / Academy / Investments | Hard product boundary |
 | Execute financial transactions | Financial harm |
 
-Calendar **event deletion execution** is also absent in V1. Atlas may propose a
-deletion (`calendar.propose_delete`) so Muhammad can act, but there is no
-`calendar.execute_delete`.
+Generic Calendar **event deletion execution** remains absent. The only deletion
+path is an approved Idea cleanup payload containing exact, linked,
+Atlas-created event IDs. Any link change invalidates that approval.
 
 ---
 
@@ -169,10 +169,19 @@ preference; it is off by default, low risk, visible and reversible.
 | `ideas.capture` | 1 | Capture verbatim |
 | `ideas.list` | 1 | List ideas |
 | `ideas.get` | 1 | Retrieve one |
-| `ideas.create_plan` | 1 | Generate a structured plan |
-| `ideas.update_status` | 1 | Move through the pipeline |
+| `ideas.propose_plan` | 1 | Check Calendar and generate a complete, non-executing proposal |
+| `ideas.approve_plan` | 1* | Approve and execute the exact pending plan after an explicit yes |
+| `ideas.execute_plan` | 2 | Create/update linked Tasks, Reminders and Calendar blocks from the hashed approval payload |
+| `ideas.add_note` | 1 | Add Idea-local context without global Memory |
+| `ideas.complete_step` | 1 | Complete the exact step and linked task |
+| `ideas.complete` | 1 | Complete an Idea after required steps finish |
 | `ideas.archive` | 1 | Archive |
-| `ideas.create_claude_code_brief` | 1 | Generate an implementation brief |
+| `ideas.restore` | 1 | Restore an archived Idea |
+| `ideas.propose_delete` | 1 | Prepare exact linked-item choices for approval |
+| `ideas.execute_delete` | 2 | Execute only the unchanged, approved deletion snapshot |
+
+`ideas.approve_plan` records the explicit owner decision and passes the existing
+approval to the atomic Level 2 claimant. It cannot alter the hashed payload.
 
 ### Approvals
 

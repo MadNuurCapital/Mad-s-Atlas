@@ -11,6 +11,7 @@ import {
   downsampleAudio,
   floatAudioToPcm16,
   GEMINI_LIVE_WEBSOCKET_ENDPOINT,
+  normaliseAtlasAddress,
   parseLiveServerMessage,
   sampleRateFromMimeType,
 } from '@/features/voice/live-protocol';
@@ -60,7 +61,16 @@ describe('Gemini Live protocol', () => {
         'reminders.create',
         'ideas.list',
         'ideas.capture',
+        'ideas.get',
+        'ideas.propose_plan',
+        'ideas.approve_plan',
+        'ideas.add_note',
+        'ideas.complete_step',
+        'ideas.archive',
+        'ideas.restore',
+        'ideas.propose_delete',
         'calendar.list_today',
+        'calendar.list_range',
         'calendar.execute_create',
         'memory.search',
         'memory.remember',
@@ -73,6 +83,16 @@ describe('Gemini Live protocol', () => {
     );
     expect(message.setup.systemInstruction.parts[0]?.text).toContain('memory.search');
     expect(message.setup.systemInstruction.parts[0]?.text).toContain('ideas.capture');
+    expect(message.setup.systemInstruction.parts[0]?.text).toContain('Only call ideas.approve_plan after');
+    expect(message.setup.systemInstruction.parts[0]?.text).toContain('do not copy them to global Memory');
+  });
+
+  it('normalises only likely direct-address mishearings of Atlas', () => {
+    expect(normaliseAtlasAddress('Alice, add this to my plan')).toBe('Atlas, add this to my plan');
+    expect(normaliseAtlasAddress('Ellis can you show my tasks?')).toBe('Atlas can you show my tasks?');
+    expect(normaliseAtlasAddress('At last, what is next?')).toBe('Atlas, what is next?');
+    expect(normaliseAtlasAddress('I spoke to Alice yesterday')).toBe('I spoke to Alice yesterday');
+    expect(normaliseAtlasAddress('Alice went to the office')).toBe('Alice went to the office');
   });
 
   it('matches Gemini tool responses to their original function calls', () => {

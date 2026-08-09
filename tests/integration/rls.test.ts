@@ -90,6 +90,8 @@ suite('cross-user isolation', () => {
     'tasks',
     'reminders',
     'ideas',
+    'idea_steps',
+    'idea_notes',
     'conversations',
   ] as const;
 
@@ -101,6 +103,8 @@ suite('cross-user isolation', () => {
       tasks: `insert into public.tasks (user_id,title) values ($1,'t')`,
       reminders: `insert into public.reminders (user_id,title,remind_at) values ($1,'t',now())`,
       ideas: `insert into public.ideas (user_id,title,original_capture) values ($1,'t','c')`,
+      idea_steps: `with parent as (insert into public.ideas (user_id,title,original_capture) values ($1,'parent','c') returning id) insert into public.idea_steps (user_id,idea_id,position,title) select $1,id,0,'s' from parent`,
+      idea_notes: `with parent as (insert into public.ideas (user_id,title,original_capture) values ($1,'parent','c') returning id) insert into public.idea_notes (user_id,idea_id,content) select $1,id,'n' from parent`,
       conversations: `insert into public.conversations (user_id,channel) values ($1,'text')`,
     };
     await client.query(seed[table] as string, [OWNER_ID]);
@@ -140,6 +144,49 @@ suite('cross-user isolation', () => {
         );
       }),
     ).rejects.toThrow(/row-level security/i);
+  });
+
+  it('a user cannot attach their step or note to another owner\'s Idea UUID', async () => {
+    const { rows } = await client.query(
+      `insert into public.ideas (user_id,title,original_capture)
+       values ($1,'owner idea','private') returning id`,
+      [OWNER_ID],
+    );
+    const ideaId = rows[0]?.id;
+
+    await expect(
+      asUser(client, INTRUDER_ID, async (q) => {
+        await q(
+          `insert into public.idea_notes (user_id,idea_id,content)
+           values ($1,$2,'cross-owner')`,
+          [INTRUDER_ID, ideaId],
+        );
+      }),
+    ).rejects.toThrow(/foreign key|violates/i);
+
+    await expect(
+      asUser(client, INTRUDER_ID, async (q) => {
+        await q(
+          `insert into public.idea_steps (user_id,idea_id,position,title)
+           values ($1,$2,0,'cross-owner')`,
+          [INTRUDER_ID, ideaId],
+        );
+      }),
+    ).rejects.toThrow(/foreign key|violates/i);
+  });
+
+  it('the original Idea wording is immutable after capture', async () => {
+    const { rows } = await client.query(
+      `insert into public.ideas (user_id,title,original_capture)
+       values ($1,'immutable idea','exact words') returning id`,
+      [OWNER_ID],
+    );
+
+    await expect(
+      asUser(client, OWNER_ID, async (q) => {
+        await q(`update public.ideas set original_capture = 'rewritten' where id = $1`, [rows[0]?.id]);
+      }),
+    ).rejects.toThrow(/idea_original_capture_is_immutable/i);
   });
 
   it('the anonymous role can read nothing', async () => {

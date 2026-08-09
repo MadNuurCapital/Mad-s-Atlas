@@ -1,13 +1,31 @@
 import { z } from 'zod';
 
+import { approveAndExecuteApproval } from '@/lib/atlas/approvals/service';
 import { AtlasPermissionLevel } from '@/lib/atlas/permissions/levels';
+import {
+  ideaDeletePayloadSchema,
+  type IdeaDeletePayload,
+  planExecutionPayloadSchema,
+  type PlanExecutionPayload,
+} from '@/lib/atlas/planner/model';
+import {
+  addIdeaNote,
+  archiveIdea,
+  completeIdea,
+  completeIdeaStep,
+  executeIdeaDeletion,
+  executeIdeaPlan,
+  proposeIdeaDeletion,
+  proposeIdeaPlan,
+  restoreIdea,
+} from '@/lib/atlas/planner/service';
 import { runAndStoreResearch } from '@/lib/atlas/research/service';
 import { getTool, registerTool, type AtlasTool } from '@/lib/atlas/tools/registry';
 import { createReminder, disableReminder, listReminders } from '@/lib/data/reminders';
 import { listMemories } from '@/lib/data/memories';
 import { getSettings } from '@/lib/data/settings';
 import { getRelevantLearningContext, recordLearningObservation } from '@/lib/data/evolution';
-import { captureIdea, listIdeas } from '@/lib/data/ideas';
+import { captureIdea, getIdeaDetail, listIdeas } from '@/lib/data/ideas';
 import { listTasks } from '@/lib/data/tasks';
 import { createEvent, listEvents } from '@/lib/google/calendar';
 import { createDraft, searchMessages } from '@/lib/google/gmail';
@@ -106,11 +124,15 @@ const tasksComplete: AtlasTool<z.infer<typeof taskCompleteSchema>, unknown> = {
       .update({ status: 'completed', completed_at: new Date().toISOString() })
       .eq('id', input.taskId)
       .is('deleted_at', null)
-      .select('id,title')
+      .select('id,title,idea_id,idea_step_id')
       .maybeSingle();
 
     if (error || !data) {
       return { ok: false, errorCode: error?.code ?? 'not_found', message: 'That task could not be found or completed.' };
+    }
+    if (data.idea_id && data.idea_step_id) {
+      const linked = await completeIdeaStep(data.idea_id, data.idea_step_id);
+      if (!linked.ok) return linked;
     }
     return { ok: true, output: data, summary: `Completed task "${data.title}"` };
   },
@@ -208,33 +230,24 @@ const ideasList: AtlasTool<z.infer<typeof ideasListSchema>, unknown> = {
       category: idea.category,
       status: idea.status,
       nextAction: idea.next_action,
+      nextActionAt: idea.next_action_at,
       structuredPlan: idea.structured_plan,
-      updatedAt: idea.updated_at,
+      updatedAt: idea.last_touched_at,
     }));
     return { ok: true, output: ideas, summary: `Read ${ideas.length} saved idea(s)` };
   },
 };
-
-const structuredPlanSchema = z.object({
-  goal: z.string().trim().max(2000).optional(),
-  requirements: z.array(z.string().trim().min(1).max(1000)).max(30).optional(),
-  steps: z.array(z.string().trim().min(1).max(1000)).max(30).optional(),
-  openQuestions: z.array(z.string().trim().min(1).max(1000)).max(30).optional(),
-  claudeCodeBrief: z.string().trim().max(12_000).optional(),
-}).strict();
 
 const ideaCaptureSchema = z.object({
   title: z.string().trim().min(1).max(200),
   originalCapture: z.string().trim().min(1).max(8000),
   summary: z.string().trim().min(1).max(4000).optional(),
   category: z.string().trim().min(1).max(80).optional(),
-  nextAction: z.string().trim().min(1).max(500).optional(),
-  structuredPlan: structuredPlanSchema.optional(),
 });
 
 const ideasCapture: AtlasTool<z.infer<typeof ideaCaptureSchema>, unknown> = {
   name: 'ideas.capture',
-  description: 'Save a user idea in the Ideas pipeline while preserving their original wording.',
+  description: 'Save a user idea verbatim, then check Calendar and prepare its complete plan for approval.',
   permissionLevel: AtlasPermissionLevel.Automatic,
   inputSchema: ideaCaptureSchema,
   async execute(context, input) {
@@ -244,8 +257,6 @@ const ideasCapture: AtlasTool<z.infer<typeof ideaCaptureSchema>, unknown> = {
         capture: input.originalCapture,
         summary: input.summary,
         category: input.category,
-        nextAction: input.nextAction,
-        structuredPlan: input.structuredPlan,
       });
 
       await recordLearningObservation({
@@ -260,14 +271,227 @@ const ideasCapture: AtlasTool<z.infer<typeof ideaCaptureSchema>, unknown> = {
         explicit: true,
       }).catch(() => null);
 
+      const plan = await proposeIdeaPlan({ userId: context.userId, ideaId: idea.id }).catch(() => ({
+        ok: false as const,
+        errorCode: 'planning_failed',
+        message: 'Atlas could not prepare the plan yet. The original Idea is safely captured.',
+      }));
+
       return {
         ok: true,
-        output: { id: idea.id, title: idea.title, status: idea.status, ideasPath: '/ideas' },
-        summary: `Captured idea “${idea.title}” in Ideas`,
+        output: {
+          id: idea.id,
+          title: idea.title,
+          status: idea.status,
+          ideaPath: `/ideas/${idea.id}`,
+          ...(plan.ok
+            ? { approvalId: plan.data.approval.id, plan: plan.data.payload }
+            : { planningError: plan.message }),
+        },
+        summary: plan.ok
+          ? `Captured idea “${idea.title}” and prepared its Calendar-checked plan for approval`
+          : `Captured idea “${idea.title}”; planning needs attention: ${plan.message}`,
       };
     } catch {
       return { ok: false, errorCode: 'insert_failed', message: 'Atlas could not save that idea.' };
     }
+  },
+};
+
+const ideaIdSchema = z.object({ ideaId: z.uuid() });
+
+const ideasGet: AtlasTool<z.infer<typeof ideaIdSchema>, unknown> = {
+  name: 'ideas.get',
+  description: 'Read one Idea with its current plan, notes and linked records.',
+  permissionLevel: AtlasPermissionLevel.Automatic,
+  inputSchema: ideaIdSchema,
+  async execute(_context, input) {
+    const detail = await getIdeaDetail(input.ideaId);
+    if (!detail) return { ok: false, errorCode: 'not_found', message: 'That idea could not be found.' };
+    return {
+      ok: true,
+      output: {
+        idea: detail.idea,
+        steps: detail.steps,
+        notes: detail.notes,
+        linkedTasks: detail.tasks.map((task) => ({ id: task.id, title: task.title, status: task.status })),
+        linkedReminders: detail.reminders.map((reminder) => ({ id: reminder.id, title: reminder.title, status: reminder.status })),
+      },
+      summary: `Read Idea “${detail.idea.title}”`,
+    };
+  },
+};
+
+const proposePlanSchema = z.object({
+  ideaId: z.uuid(),
+  revisionInstruction: z.string().trim().min(1).max(4000).optional(),
+  timeZone: timeZoneSchema.default(ATLAS_DEFAULT_TIMEZONE),
+});
+
+const ideasProposePlan: AtlasTool<z.infer<typeof proposePlanSchema>, unknown> = {
+  name: 'ideas.propose_plan',
+  description: 'Understand or revise an Idea, check Google Calendar, and prepare one complete plan approval. This creates no linked items yet.',
+  permissionLevel: AtlasPermissionLevel.Automatic,
+  inputSchema: proposePlanSchema,
+  async execute(context, input) {
+    const result = await proposeIdeaPlan({
+      userId: context.userId,
+      ideaId: input.ideaId,
+      revisionInstruction: input.revisionInstruction,
+      timezone: input.timeZone,
+    });
+    if (!result.ok) return result;
+    return {
+      ok: true,
+      output: {
+        approvalId: result.data.approval.id,
+        plan: result.data.payload,
+        ideaPath: `/ideas/${input.ideaId}`,
+      },
+      summary: 'Prepared the Idea plan and displayed it for approval',
+    };
+  },
+};
+
+const approvePlanSchema = z.object({ approvalId: z.uuid() });
+
+const ideasApprovePlan: AtlasTool<z.infer<typeof approvePlanSchema>, unknown> = {
+  name: 'ideas.approve_plan',
+  description: 'Approve and execute one exact pending Idea plan only after the user explicitly says to approve the plan Atlas just presented.',
+  permissionLevel: AtlasPermissionLevel.Automatic,
+  inputSchema: approvePlanSchema,
+  async execute(_context, input) {
+    const result = await approveAndExecuteApproval(input.approvalId, 'ideas.execute_plan');
+    return result.ok
+      ? { ok: true, output: { approvalId: input.approvalId }, summary: result.summary }
+      : result;
+  },
+};
+
+const addIdeaNoteSchema = z.object({
+  ideaId: z.uuid(),
+  content: z.string().trim().min(1).max(8000),
+});
+
+const ideasAddNote: AtlasTool<z.infer<typeof addIdeaNoteSchema>, unknown> = {
+  name: 'ideas.add_note',
+  description: 'Add a lightweight note to one Idea. It remains separate from global Atlas Memory.',
+  permissionLevel: AtlasPermissionLevel.Automatic,
+  inputSchema: addIdeaNoteSchema,
+  async execute(context, input) {
+    const result = await addIdeaNote(context.userId, input.ideaId, input.content);
+    return result.ok ? { ok: true, output: result.data, summary: result.summary } : result;
+  },
+};
+
+const completeIdeaStepSchema = z.object({ ideaId: z.uuid(), stepId: z.uuid() });
+
+const ideasCompleteStep: AtlasTool<z.infer<typeof completeIdeaStepSchema>, unknown> = {
+  name: 'ideas.complete_step',
+  description: 'Complete one exact Idea step and its linked task after the user says it is done.',
+  permissionLevel: AtlasPermissionLevel.Automatic,
+  inputSchema: completeIdeaStepSchema,
+  async execute(_context, input) {
+    const result = await completeIdeaStep(input.ideaId, input.stepId);
+    return result.ok ? { ok: true, output: result.data, summary: result.summary } : result;
+  },
+};
+
+const ideasComplete: AtlasTool<z.infer<typeof ideaIdSchema>, unknown> = {
+  name: 'ideas.complete',
+  description: 'Complete the whole Idea only after explicit confirmation and when all required steps are finished.',
+  permissionLevel: AtlasPermissionLevel.Automatic,
+  inputSchema: ideaIdSchema,
+  async execute(_context, input) {
+    const result = await completeIdea(input.ideaId);
+    return result.ok ? { ok: true, output: result.data, summary: result.summary } : result;
+  },
+};
+
+const ideasArchive: AtlasTool<z.infer<typeof ideaIdSchema>, unknown> = {
+  name: 'ideas.archive',
+  description: 'Archive one Idea without changing its linked tasks, reminders or calendar events.',
+  permissionLevel: AtlasPermissionLevel.Automatic,
+  inputSchema: ideaIdSchema,
+  async execute(_context, input) {
+    const result = await archiveIdea(input.ideaId);
+    return result.ok ? { ok: true, output: result.data, summary: result.summary } : result;
+  },
+};
+
+const ideasRestore: AtlasTool<z.infer<typeof ideaIdSchema>, unknown> = {
+  name: 'ideas.restore',
+  description: 'Restore one archived Idea to its previous status.',
+  permissionLevel: AtlasPermissionLevel.Automatic,
+  inputSchema: ideaIdSchema,
+  async execute(_context, input) {
+    const result = await restoreIdea(input.ideaId);
+    return result.ok ? { ok: true, output: result.data, summary: result.summary } : result;
+  },
+};
+
+const proposeDeleteSchema = z.object({
+  ideaId: z.uuid(),
+  deleteLinkedTasks: z.boolean(),
+  deleteLinkedReminders: z.boolean(),
+  deleteLinkedCalendarEvents: z.boolean(),
+});
+
+const ideasProposeDelete: AtlasTool<z.infer<typeof proposeDeleteSchema>, unknown> = {
+  name: 'ideas.propose_delete',
+  description: 'Prepare permanent Idea deletion after the user explicitly chooses which linked items to remove. Deletes nothing yet.',
+  permissionLevel: AtlasPermissionLevel.Automatic,
+  inputSchema: proposeDeleteSchema,
+  async execute(context, input) {
+    const result = await proposeIdeaDeletion({ userId: context.userId, ...input });
+    return result.ok
+      ? {
+          ok: true,
+          output: { approvalId: result.data.approval.id, approvalsPath: '/approvals' },
+          summary: result.summary,
+        }
+      : result;
+  },
+};
+
+const ideasExecutePlan: AtlasTool<PlanExecutionPayload, unknown> = {
+  name: 'ideas.execute_plan',
+  description: 'Create or revise all selected Tasks, Google Calendar blocks and Reminders in one approved plan.',
+  permissionLevel: AtlasPermissionLevel.RequiresApproval,
+  inputSchema: planExecutionPayloadSchema,
+  describeProposal(input) {
+    return {
+      title: `Approve plan: ${input.ideaTitle}`,
+      summary: `Creates or updates ${input.steps.length} plan step(s). Calendar changes run only after approval.`,
+      affected: input.steps.map((step) => step.title),
+    };
+  },
+  async execute(context, input) {
+    const result = await executeIdeaPlan(context.userId, input, context.signal);
+    return result.ok ? { ok: true, output: result.data, summary: result.summary } : result;
+  },
+};
+
+const ideasExecuteDelete: AtlasTool<IdeaDeletePayload, unknown> = {
+  name: 'ideas.execute_delete',
+  description: 'Permanently delete one Idea and only the exact linked items selected in its approval.',
+  permissionLevel: AtlasPermissionLevel.RequiresApproval,
+  inputSchema: ideaDeletePayloadSchema,
+  describeProposal(input) {
+    return {
+      title: `Delete idea: ${input.ideaTitle}`,
+      summary: 'Permanently deletes the Idea. Selected linked items are visible in the exact payload.',
+      affected: [
+        `Idea: ${input.ideaTitle}`,
+        ...(input.deleteLinkedTasks ? [`${input.linkedTaskIds.length} task(s)`] : []),
+        ...(input.deleteLinkedReminders ? [`${input.linkedReminderIds.length} reminder(s)`] : []),
+        ...(input.deleteLinkedCalendarEvents ? [`${input.linkedCalendarEventIds.length} calendar event(s)`] : []),
+      ],
+    };
+  },
+  async execute(context, input) {
+    const result = await executeIdeaDeletion(context.userId, input, context.signal);
+    return result.ok ? { ok: true, output: result.data, summary: result.summary } : result;
   },
 };
 
@@ -301,6 +525,43 @@ const calendarListToday: AtlasTool<z.infer<typeof listTodaySchema>, unknown> = {
       ok: true,
       output: result.data,
       summary: `Read ${result.data.length} calendar event(s) for today`,
+    };
+  },
+};
+
+const listRangeSchema = z.object({
+  start: isoString,
+  end: isoString,
+  timeZone: timeZoneSchema.default(ATLAS_DEFAULT_TIMEZONE),
+}).refine((value) => {
+  const span = new Date(value.end).getTime() - new Date(value.start).getTime();
+  return span > 0 && span <= 90 * 86_400_000;
+}, { message: 'Calendar range must be positive and no longer than 90 days.' });
+
+const calendarListRange: AtlasTool<z.infer<typeof listRangeSchema>, unknown> = {
+  name: 'calendar.list_range',
+  description: 'Read Google Calendar commitments across a bounded range before planning or moving work.',
+  permissionLevel: AtlasPermissionLevel.Automatic,
+  inputSchema: listRangeSchema,
+  async execute(context, input) {
+    const result = await listEvents(
+      context.userId,
+      new Date(input.start),
+      new Date(input.end),
+      input.timeZone,
+      context.signal,
+    );
+    if (!result.ok) return { ok: false, errorCode: result.errorCode, message: result.message };
+    return {
+      ok: true,
+      output: result.data.map((event) => ({
+        id: event.id,
+        summary: event.summary,
+        start: event.start,
+        end: event.end,
+        allDay: event.allDay,
+      })),
+      summary: `Read ${result.data.length} calendar commitment(s)`,
     };
   },
 };
@@ -607,11 +868,23 @@ export function registerAllTools(): void {
   registerTool(remindersDisable);
   registerTool(ideasList);
   registerTool(ideasCapture);
+  registerTool(ideasGet);
+  registerTool(ideasProposePlan);
+  registerTool(ideasApprovePlan);
+  registerTool(ideasAddNote);
+  registerTool(ideasCompleteStep);
+  registerTool(ideasComplete);
+  registerTool(ideasArchive);
+  registerTool(ideasRestore);
+  registerTool(ideasProposeDelete);
+  registerTool(ideasExecutePlan);
+  registerTool(ideasExecuteDelete);
   registerTool(memorySearch);
   registerTool(memoryRemember);
   registerTool(learningFeedback);
   registerTool(researchCurrent);
   registerTool(calendarListToday);
+  registerTool(calendarListRange);
   registerTool(calendarExecuteCreate);
   registerTool(gmailSearch);
   registerTool(gmailExecuteCreateDraft);

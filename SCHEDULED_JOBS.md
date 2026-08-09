@@ -28,7 +28,7 @@ Cron expressions are written in UTC.
 | Job | Cron (UTC) | Singapore | Function | Purpose |
 |---|---|---|---|---|
 | `daily_briefing` | `0 1 * * *` | 09:00 daily | `daily-briefing` | Generate the morning briefing |
-| `check_reminders` | `*/5 * * * *` | every 5 min | `check-reminders` | Fire due reminders |
+| `check_reminders` | `*/5 * * * *` | every 5 min | `check-reminders` | Fire reminders and bounded Idea plan alerts |
 | `meeting_preparation` | `*/10 * * * *` | every 10 min | `meeting-preparation` | Prepare briefs before meetings |
 | `generate_embeddings` | `*/15 * * * *` | every 15 min | `generate-embeddings` | Embed new memories, retry failures |
 | `expire_approvals` | `*/10 * * * *` | every 10 min | `maintenance` | `pending → expired` past expiry |
@@ -184,6 +184,22 @@ cheapest job.
 ```
 
 Recurrence is expanded in the reminder's stored timezone, not the server's.
+
+Approved Idea steps use the same job and subscriptions, but a separate
+idempotency key per step, scheduled instant and alert kind:
+
+1. `ATLAS // UPCOMING` about 15 minutes before the session.
+2. `ATLAS // EXECUTE` when the session starts.
+3. At most one `ATLAS // PLAN CHECK` 60 minutes after the scheduled end if the
+   step is still unfinished. This marks the existing linked task “Needs
+   attention”; it never creates a duplicate task.
+
+Notification actions are `Done`, `Open plan`, and, for a missed session,
+`Reschedule`. They deep-link to the exact Idea. The service worker caches no
+private application data.
+
+The function requires these Supabase Edge Function secrets:
+`VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, and `VAPID_SUBJECT`.
 
 ### `meeting_preparation`
 

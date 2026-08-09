@@ -1,4 +1,4 @@
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
@@ -39,5 +39,14 @@ describe('Atlas PWA contract', () => {
     ]) {
       expect(existsSync(join(process.cwd(), path)), `${path} should exist`).toBe(true);
     }
+  });
+
+  it('ships a push-only worker with plan deep links and no offline cache of private data', () => {
+    const worker = readFileSync(join(process.cwd(), 'public/sw.js'), 'utf8');
+    expect(worker).toContain("addEventListener('push'");
+    expect(worker).toContain("addEventListener('notificationclick'");
+    expect(worker).toContain('/api/ideas/step-action');
+    expect(worker).toContain('#idea-command');
+    expect(worker).not.toMatch(/caches\.open|cache\.put/);
   });
 });

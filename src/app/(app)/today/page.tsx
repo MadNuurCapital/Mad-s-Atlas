@@ -12,9 +12,11 @@ import {
   type TodayPriority,
   type TodayTimelineItem,
 } from '@/components/today/TodayDashboard';
+import { NextPlanActionCard } from '@/components/today/NextPlanActionCard';
 import { requireOwner } from '@/lib/auth/owner';
 import { listApprovals, partitionApprovals } from '@/lib/data/approvals';
 import { getLatestBriefing } from '@/lib/data/briefings';
+import { getNextPlanAction } from '@/lib/data/ideas';
 import { listReminders, bucketReminders } from '@/lib/data/reminders';
 import { getConnectionStatus, getProfile } from '@/lib/data/settings';
 import { bucketTasks, listTasks } from '@/lib/data/tasks';
@@ -167,6 +169,11 @@ async function BriefingPanel({
   );
 }
 
+async function PlanActionPanel({ data }: { data: ReturnType<typeof getNextPlanAction> }) {
+  const action = await data;
+  return action ? <NextPlanActionCard idea={action.idea} step={action.step} /> : null;
+}
+
 function PanelSkeleton({ label, tall = false }: { label: string; tall?: boolean }) {
   return (
     <div
@@ -188,6 +195,7 @@ export default function TodayPage() {
   const calendarDay = loadCalendarDay(now);
   const profile = getProfile();
   const briefing = getLatestBriefing();
+  const planAction = getNextPlanAction();
 
   return (
     <div className="mx-auto w-full max-w-[90rem] px-4 py-6 sm:px-7 lg:px-9 lg:py-8 xl:px-11">
@@ -214,6 +222,10 @@ export default function TodayPage() {
       </header>
 
       <CommandBar />
+
+      <Suspense fallback={null}>
+        <PlanActionPanel data={planAction} />
+      </Suspense>
 
       <div className="mt-6 grid gap-5 xl:grid-cols-[minmax(0,1.55fr)_minmax(20rem,0.8fr)]">
         <Suspense fallback={<PanelSkeleton label="priorities" tall />}>

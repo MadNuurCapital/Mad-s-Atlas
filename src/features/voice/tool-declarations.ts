@@ -76,7 +76,7 @@ export const VOICE_FUNCTION_DECLARATIONS = [
   },
   {
     name: 'ideas.capture',
-    description: 'Persist an idea in the Ideas tab. Use the user’s wording verbatim in originalCapture and only report success after this tool succeeds.',
+    description: 'Persist an Idea verbatim, check Calendar, and return its complete plan proposal for approval.',
     parameters: {
       type: 'object',
       properties: {
@@ -84,20 +84,101 @@ export const VOICE_FUNCTION_DECLARATIONS = [
         originalCapture: { type: 'string', description: 'The user’s idea in their original wording. Do not rewrite it.' },
         summary: { type: 'string', description: 'Optional faithful one-sentence summary.' },
         category: { type: 'string', description: 'Optional short category.' },
-        nextAction: { type: 'string', description: 'Only include an action the user requested or agreed to.' },
-        structuredPlan: {
-          type: 'object',
-          description: 'Optional structure when the user explicitly asks Atlas to plan or create a Claude Code brief.',
-          properties: {
-            goal: { type: 'string' },
-            requirements: { type: 'array', items: { type: 'string' } },
-            steps: { type: 'array', items: { type: 'string' } },
-            openQuestions: { type: 'array', items: { type: 'string' } },
-            claudeCodeBrief: { type: 'string' },
-          },
-        },
       },
       required: ['title', 'originalCapture'],
+    },
+  },
+  {
+    name: 'ideas.get',
+    description: 'Read one exact Idea, its plan, notes and linked records before changing or answering about it.',
+    parameters: {
+      type: 'object',
+      properties: { ideaId: { type: 'string', description: 'Exact UUID from ideas.list or ideas.capture.' } },
+      required: ['ideaId'],
+    },
+  },
+  {
+    name: 'ideas.propose_plan',
+    description: 'Understand, improve, plan or re-plan one Idea. Checks Google Calendar and creates one proposal for approval; does not execute it.',
+    parameters: {
+      type: 'object',
+      properties: {
+        ideaId: { type: 'string', description: 'Exact Idea UUID.' },
+        revisionInstruction: { type: 'string', description: 'For re-planning, copy the user’s requested change faithfully.' },
+        timeZone: { type: 'string', description: 'IANA timezone, normally Asia/Singapore.' },
+      },
+      required: ['ideaId'],
+    },
+  },
+  {
+    name: 'ideas.approve_plan',
+    description: 'Approve and execute the exact pending Idea plan Atlas just presented. Call only after the user explicitly says yes or approve.',
+    parameters: {
+      type: 'object',
+      properties: { approvalId: { type: 'string', description: 'Exact UUID returned by ideas.propose_plan.' } },
+      required: ['approvalId'],
+    },
+  },
+  {
+    name: 'ideas.add_note',
+    description: 'Add a note to one Idea only. Do not also save it to global Memory unless separately requested.',
+    parameters: {
+      type: 'object',
+      properties: {
+        ideaId: { type: 'string' },
+        content: { type: 'string', description: 'The note content in the user’s wording.' },
+      },
+      required: ['ideaId', 'content'],
+    },
+  },
+  {
+    name: 'ideas.complete_step',
+    description: 'Mark one exact plan step and its linked task done after the user explicitly says it is finished.',
+    parameters: {
+      type: 'object',
+      properties: { ideaId: { type: 'string' }, stepId: { type: 'string' } },
+      required: ['ideaId', 'stepId'],
+    },
+  },
+  {
+    name: 'ideas.complete',
+    description: 'Complete a whole Idea only after all required steps are done and the user confirms completion.',
+    parameters: {
+      type: 'object',
+      properties: { ideaId: { type: 'string' } },
+      required: ['ideaId'],
+    },
+  },
+  {
+    name: 'ideas.archive',
+    description: 'Archive one Idea without changing linked Tasks, Reminders or Calendar events.',
+    parameters: {
+      type: 'object',
+      properties: { ideaId: { type: 'string' } },
+      required: ['ideaId'],
+    },
+  },
+  {
+    name: 'ideas.restore',
+    description: 'Restore one archived Idea.',
+    parameters: {
+      type: 'object',
+      properties: { ideaId: { type: 'string' } },
+      required: ['ideaId'],
+    },
+  },
+  {
+    name: 'ideas.propose_delete',
+    description: 'Only after explicit confirmation, prepare permanent Idea deletion and the user’s exact choices for linked Tasks, Reminders and Calendar events.',
+    parameters: {
+      type: 'object',
+      properties: {
+        ideaId: { type: 'string' },
+        deleteLinkedTasks: { type: 'boolean' },
+        deleteLinkedReminders: { type: 'boolean' },
+        deleteLinkedCalendarEvents: { type: 'boolean' },
+      },
+      required: ['ideaId', 'deleteLinkedTasks', 'deleteLinkedReminders', 'deleteLinkedCalendarEvents'],
     },
   },
   {
@@ -106,6 +187,19 @@ export const VOICE_FUNCTION_DECLARATIONS = [
     parameters: {
       type: 'object',
       properties: { timeZone: { type: 'string', description: 'IANA timezone.' } },
+    },
+  },
+  {
+    name: 'calendar.list_range',
+    description: 'Read Google Calendar commitments for a bounded range before planning or moving work.',
+    parameters: {
+      type: 'object',
+      properties: {
+        start: { type: 'string', description: 'ISO 8601 range start.' },
+        end: { type: 'string', description: 'ISO 8601 range end, no more than 90 days later.' },
+        timeZone: { type: 'string' },
+      },
+      required: ['start', 'end'],
     },
   },
   {

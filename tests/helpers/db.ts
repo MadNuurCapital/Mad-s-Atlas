@@ -106,8 +106,10 @@ export async function cleanup(client: Client): Promise<void> {
   await client.query('delete from public.memories where user_id = any($1)', [ids]);
   await client.query('delete from public.action_logs where user_id = any($1)', [ids]);
   await client.query('delete from public.approvals where user_id = any($1)', [ids]);
+  await client.query('delete from public.idea_notes where user_id = any($1)', [ids]);
   await client.query('delete from public.reminders where user_id = any($1)', [ids]);
   await client.query('delete from public.tasks where user_id = any($1)', [ids]);
+  await client.query('delete from public.idea_steps where user_id = any($1)', [ids]);
   await client.query('delete from public.ideas where user_id = any($1)', [ids]);
   await client.query('delete from public.connected_accounts where user_id = any($1)', [ids]);
   await client.query('delete from public.daily_briefings where user_id = any($1)', [ids]);

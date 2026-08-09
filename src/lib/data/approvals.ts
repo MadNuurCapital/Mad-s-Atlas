@@ -19,6 +19,14 @@ export async function listApprovals(status?: ApprovalStatus): Promise<Approval[]
   return (data ?? []) as Approval[];
 }
 
+export async function getApproval(id: string | null): Promise<Approval | null> {
+  if (!id) return null;
+  const supabase = await createClient();
+  const { data, error } = await supabase.from('approvals').select('*').eq('id', id).maybeSingle();
+  if (error) throw new Error(`Could not load the approval (${error.code ?? 'unknown'})`);
+  return data as Approval | null;
+}
+
 /** Pending approvals that have not yet expired — what the Today screen counts. */
 export async function countPendingApprovals(): Promise<number> {
   const supabase = await createClient();

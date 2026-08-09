@@ -10,8 +10,9 @@ import { ATLAS_DEFAULT_TIMEZONE } from '@/lib/time';
  * validates every field and logs the result, but an explicit request from Mad
  * does not create a redundant approval step.
  *
- * There is deliberately no delete function: `calendar.execute_delete` is
- * Level 3 in V1. Atlas can propose a deletion for Muhammad to action himself.
+ * There is no generic voice delete tool. A narrowly scoped plan cleanup may
+ * delete an exact event ID only after the compound Idea deletion payload has
+ * been reviewed and approved.
  */
 
 const CALENDAR_BASE = 'https://www.googleapis.com/calendar/v3';
@@ -103,6 +104,7 @@ async function calendarFetch<T>(
       };
     }
 
+    if (response.status === 204) return { ok: true, data: undefined as T };
     return { ok: true, data: (await response.json()) as T };
   } catch {
     return { ok: false, errorCode: 'network_error', message: 'Google Calendar could not be reached.' };
@@ -125,22 +127,36 @@ export async function listEvents(
     singleEvents: 'true',
     orderBy: 'startTime',
     timeZone,
-    maxResults: '50',
+    maxResults: '2500',
   });
+  const events: RawEvent[] = [];
+  let pageToken: string | undefined;
 
-  const result = await calendarFetch<{ items?: RawEvent[] }>(
-    userId,
-    `/calendars/primary/events?${params.toString()}`,
-    { signal },
-  );
-
-  if (!result.ok) return result;
+  // A 90-day planning scan must not silently ignore a busy interval merely
+  // because it fell after Google's first page. Ten full pages is a defensive
+  // cap; if reached, planning fails closed instead of claiming availability.
+  for (let page = 0; page < 10; page += 1) {
+    if (pageToken) params.set('pageToken', pageToken);
+    const result = await calendarFetch<{ items?: RawEvent[]; nextPageToken?: string }>(
+      userId,
+      `/calendars/primary/events?${params.toString()}`,
+      { signal },
+    );
+    if (!result.ok) return result;
+    events.push(...(result.data.items ?? []));
+    pageToken = result.data.nextPageToken;
+    if (!pageToken) {
+      return {
+        ok: true,
+        data: events.filter((raw) => raw.status !== 'cancelled').map(normalise),
+      };
+    }
+  }
 
   return {
-    ok: true,
-    data: (result.data.items ?? [])
-      .filter((raw) => raw.status !== 'cancelled')
-      .map(normalise),
+    ok: false,
+    errorCode: 'calendar_range_too_large',
+    message: 'This calendar range has too many events to verify safely. Choose a shorter planning range.',
   };
 }
 
@@ -173,4 +189,74 @@ export async function createEvent(
 
   if (!result.ok) return result;
   return { ok: true, data: { eventId: result.data.id, htmlLink: result.data.htmlLink ?? null } };
+}
+
+/** Stable Google-compatible ID for one Atlas plan step. */
+export function planCalendarEventId(stepId: string): string {
+  // Google event IDs accept base32hex characters. UUID hex plus this prefix is
+  // valid, and deterministic IDs make retrying a partial plan execution safe.
+  return `atlasplan${stepId.replaceAll('-', '').toLowerCase()}`;
+}
+
+/** Create or update the exact event owned by an approved Atlas plan step. */
+export async function upsertPlanEvent(
+  userId: string,
+  stepId: string,
+  input: CreateEventInput,
+  signal?: AbortSignal,
+): Promise<CalendarResult<{ eventId: string; htmlLink: string | null }>> {
+  const eventId = planCalendarEventId(stepId);
+  const path = `/calendars/primary/events/${encodeURIComponent(eventId)}`;
+  const existing = await calendarFetch<RawEvent>(userId, path, { signal });
+  const body = {
+    id: eventId,
+    summary: input.summary,
+    description: input.description,
+    start: { dateTime: input.start, timeZone: input.timeZone ?? ATLAS_DEFAULT_TIMEZONE },
+    end: { dateTime: input.end, timeZone: input.timeZone ?? ATLAS_DEFAULT_TIMEZONE },
+    extendedProperties: { private: { atlasIdeaStepId: stepId } },
+  };
+
+  let result = existing.ok
+    ? await calendarFetch<RawEvent>(userId, path, {
+        method: 'PUT',
+        signal,
+        body: JSON.stringify(body),
+      })
+    : existing.errorCode === 'http_404'
+      ? await calendarFetch<RawEvent>(userId, '/calendars/primary/events', {
+          method: 'POST',
+          signal,
+          body: JSON.stringify(body),
+        })
+      : existing;
+
+  // A concurrent retry may create the deterministic event after our GET but
+  // before POST. Convert that harmless 409 race into the same idempotent PUT.
+  if (!result.ok && result.errorCode === 'http_409') {
+    result = await calendarFetch<RawEvent>(userId, path, {
+      method: 'PUT',
+      signal,
+      body: JSON.stringify(body),
+    });
+  }
+
+  if (!result.ok) return result;
+  return { ok: true, data: { eventId: result.data.id, htmlLink: result.data.htmlLink ?? null } };
+}
+
+/** Delete only an exact event already linked to an approved Idea operation. */
+export async function deletePlanEvent(
+  userId: string,
+  eventId: string,
+  signal?: AbortSignal,
+): Promise<CalendarResult<null>> {
+  const result = await calendarFetch<void>(
+    userId,
+    `/calendars/primary/events/${encodeURIComponent(eventId)}`,
+    { method: 'DELETE', signal },
+  );
+  if (!result.ok && result.errorCode === 'http_404') return { ok: true, data: null };
+  if (!result.ok) return result;
+  return { ok: true, data: null };
 }
