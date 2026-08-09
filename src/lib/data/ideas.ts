@@ -1,7 +1,9 @@
 import 'server-only';
 
+import { revalidatePath } from 'next/cache';
+
 import { createClient } from '@/lib/supabase/server';
-import type { Idea, IdeaStatus } from '@/types/database';
+import type { Idea, IdeaStatus, Json } from '@/types/database';
 
 /**
  * Idea capture.
@@ -47,11 +49,37 @@ export function groupIdeasByStatus(ideas: Idea[]): Record<IdeaStatus, Idea[]> {
   return grouped;
 }
 
-export async function captureIdea(input: { title: string; capture: string }): Promise<Idea> {
+export type CaptureIdeaInput = {
+  title: string;
+  capture: string;
+  summary?: string;
+  category?: string;
+  nextAction?: string;
+  structuredPlan?: Json;
+};
+
+export async function captureIdea(input: CaptureIdeaInput): Promise<Idea> {
   const supabase = await createClient();
 
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) throw new Error('Not signed in.');
+
+  // Gemini Live may repeat a function call after reconnecting. Preserve the
+  // first capture and return it instead of creating a duplicate card.
+  const { data: existing, error: existingError } = await supabase
+    .from('ideas')
+    .select('*')
+    .eq('user_id', auth.user.id)
+    .eq('original_capture', input.capture)
+    .is('archived_at', null)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (existingError) {
+    throw new Error(`Could not check existing ideas (${existingError.code ?? 'unknown'})`);
+  }
+  if (existing) return existing as Idea;
 
   const { data, error } = await supabase
     .from('ideas')
@@ -60,12 +88,17 @@ export async function captureIdea(input: { title: string; capture: string }): Pr
       title: input.title,
       // Verbatim. Never normalised, trimmed of meaning, or "improved".
       original_capture: input.capture,
+      summary: input.summary,
+      category: input.category,
       status: 'captured',
+      next_action: input.nextAction,
+      structured_plan: input.structuredPlan ?? {},
     })
     .select()
     .single();
 
   if (error) throw new Error(`Could not capture the idea (${error.code ?? 'unknown'})`);
+  revalidatePath('/ideas');
   return data as Idea;
 }
 

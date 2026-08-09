@@ -7,6 +7,7 @@ import { createReminder, disableReminder, listReminders } from '@/lib/data/remin
 import { listMemories } from '@/lib/data/memories';
 import { getSettings } from '@/lib/data/settings';
 import { getRelevantLearningContext, recordLearningObservation } from '@/lib/data/evolution';
+import { captureIdea, listIdeas } from '@/lib/data/ideas';
 import { listTasks } from '@/lib/data/tasks';
 import { createEvent, listEvents } from '@/lib/google/calendar';
 import { createDraft, searchMessages } from '@/lib/google/gmail';
@@ -185,6 +186,87 @@ const remindersDisable: AtlasTool<z.infer<typeof reminderDisableSchema>, unknown
       return { ok: true, output: { id: input.reminderId }, summary: 'Disabled the reminder' };
     } catch {
       return { ok: false, errorCode: 'update_failed', message: 'The reminder could not be disabled.' };
+    }
+  },
+};
+
+/* -------------------------------------------------------------------- Ideas */
+
+const ideasListSchema = z.object({ limit: z.number().int().min(1).max(50).default(20) });
+
+const ideasList: AtlasTool<z.infer<typeof ideasListSchema>, unknown> = {
+  name: 'ideas.list',
+  description: 'List the ideas currently saved in the Atlas Ideas pipeline.',
+  permissionLevel: AtlasPermissionLevel.Automatic,
+  inputSchema: ideasListSchema,
+  async execute(_context, input) {
+    const ideas = (await listIdeas()).slice(0, input.limit).map((idea) => ({
+      id: idea.id,
+      title: idea.title,
+      originalCapture: idea.original_capture,
+      summary: idea.summary,
+      category: idea.category,
+      status: idea.status,
+      nextAction: idea.next_action,
+      structuredPlan: idea.structured_plan,
+      updatedAt: idea.updated_at,
+    }));
+    return { ok: true, output: ideas, summary: `Read ${ideas.length} saved idea(s)` };
+  },
+};
+
+const structuredPlanSchema = z.object({
+  goal: z.string().trim().max(2000).optional(),
+  requirements: z.array(z.string().trim().min(1).max(1000)).max(30).optional(),
+  steps: z.array(z.string().trim().min(1).max(1000)).max(30).optional(),
+  openQuestions: z.array(z.string().trim().min(1).max(1000)).max(30).optional(),
+  claudeCodeBrief: z.string().trim().max(12_000).optional(),
+}).strict();
+
+const ideaCaptureSchema = z.object({
+  title: z.string().trim().min(1).max(200),
+  originalCapture: z.string().trim().min(1).max(8000),
+  summary: z.string().trim().min(1).max(4000).optional(),
+  category: z.string().trim().min(1).max(80).optional(),
+  nextAction: z.string().trim().min(1).max(500).optional(),
+  structuredPlan: structuredPlanSchema.optional(),
+});
+
+const ideasCapture: AtlasTool<z.infer<typeof ideaCaptureSchema>, unknown> = {
+  name: 'ideas.capture',
+  description: 'Save a user idea in the Ideas pipeline while preserving their original wording.',
+  permissionLevel: AtlasPermissionLevel.Automatic,
+  inputSchema: ideaCaptureSchema,
+  async execute(context, input) {
+    try {
+      const idea = await captureIdea({
+        title: input.title,
+        capture: input.originalCapture,
+        summary: input.summary,
+        category: input.category,
+        nextAction: input.nextAction,
+        structuredPlan: input.structuredPlan,
+      });
+
+      await recordLearningObservation({
+        userId: context.userId,
+        kind: 'observation',
+        category: 'projects',
+        key: `idea:${idea.id}`,
+        title: idea.title,
+        summary: idea.summary ?? idea.original_capture,
+        sourceType: 'voice',
+        sourceReference: idea.id,
+        explicit: true,
+      }).catch(() => null);
+
+      return {
+        ok: true,
+        output: { id: idea.id, title: idea.title, status: idea.status, ideasPath: '/ideas' },
+        summary: `Captured idea “${idea.title}” in Ideas`,
+      };
+    } catch {
+      return { ok: false, errorCode: 'insert_failed', message: 'Atlas could not save that idea.' };
     }
   },
 };
@@ -523,6 +605,8 @@ export function registerAllTools(): void {
   registerTool(remindersList);
   registerTool(remindersCreate);
   registerTool(remindersDisable);
+  registerTool(ideasList);
+  registerTool(ideasCapture);
   registerTool(memorySearch);
   registerTool(memoryRemember);
   registerTool(learningFeedback);

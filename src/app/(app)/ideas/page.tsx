@@ -30,7 +30,7 @@ export default async function IdeasPage() {
         <EmptyState
           icon={Lightbulb}
           title="No ideas captured"
-          description="Capture a thought and Atlas can turn it into a structured plan — or a Claude Code brief you can hand straight to an implementation session. Your original wording is always kept, never rewritten."
+          description={'Tell Atlas “Capture this idea: …” in Talk. Atlas can turn it into a structured plan — or a Claude Code brief you can hand straight to an implementation session. Your original wording is always kept, never rewritten.'}
         />
       </Page>
     );

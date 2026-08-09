@@ -67,6 +67,40 @@ export const VOICE_FUNCTION_DECLARATIONS = [
     },
   },
   {
+    name: 'ideas.list',
+    description: 'List captured Atlas ideas before answering what ideas the user has saved or planned.',
+    parameters: {
+      type: 'object',
+      properties: { limit: { type: 'integer', minimum: 1, maximum: 50 } },
+    },
+  },
+  {
+    name: 'ideas.capture',
+    description: 'Persist an idea in the Ideas tab. Use the user’s wording verbatim in originalCapture and only report success after this tool succeeds.',
+    parameters: {
+      type: 'object',
+      properties: {
+        title: { type: 'string', description: 'A short, faithful title for the idea.' },
+        originalCapture: { type: 'string', description: 'The user’s idea in their original wording. Do not rewrite it.' },
+        summary: { type: 'string', description: 'Optional faithful one-sentence summary.' },
+        category: { type: 'string', description: 'Optional short category.' },
+        nextAction: { type: 'string', description: 'Only include an action the user requested or agreed to.' },
+        structuredPlan: {
+          type: 'object',
+          description: 'Optional structure when the user explicitly asks Atlas to plan or create a Claude Code brief.',
+          properties: {
+            goal: { type: 'string' },
+            requirements: { type: 'array', items: { type: 'string' } },
+            steps: { type: 'array', items: { type: 'string' } },
+            openQuestions: { type: 'array', items: { type: 'string' } },
+            claudeCodeBrief: { type: 'string' },
+          },
+        },
+      },
+      required: ['title', 'originalCapture'],
+    },
+  },
+  {
     name: 'calendar.list_today',
     description: "Read today's Google Calendar events.",
     parameters: {
