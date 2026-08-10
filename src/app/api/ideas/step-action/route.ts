@@ -18,11 +18,12 @@ export async function POST(request: Request) {
   if (!parsed.success) return NextResponse.json({ error: 'Invalid step action.' }, { status: 400 });
 
   const supabase = await createClient();
-  const { data: step } = await supabase
+  const { data: step, error: stepError } = await supabase
     .from('idea_steps')
     .select('idea_id')
     .eq('id', parsed.data.stepId)
     .maybeSingle();
+  if (stepError) return NextResponse.json({ error: 'Could not load the plan step.' }, { status: 500 });
   if (!step) return NextResponse.json({ error: 'Plan step not found.' }, { status: 404 });
 
   const result = await completeIdeaStep(step.idea_id, parsed.data.stepId);

@@ -88,4 +88,25 @@ describe('Ideas planner scheduling', () => {
     });
     expect(step?.scheduledStart).toBe('2026-08-15T00:00:00.000Z');
   });
+
+  it('recovers safely from inverted model date and time ranges', () => {
+    const value = draft({
+      constraints: {
+        earliestDate: '2026-08-20',
+        latestDate: '2026-08-10',
+        avoidWeekdays: [],
+        preferredStartHour: 18,
+        preferredEndHour: 9,
+      },
+      steps: [firstStep()],
+    });
+    const [step] = schedulePlanSteps({
+      draft: value,
+      timezone: 'Asia/Singapore',
+      now: new Date('2026-08-10T00:00:00.000Z'),
+      busy: [],
+    });
+
+    expect(step?.scheduledStart).toBe('2026-08-10T00:00:00.000Z');
+  });
 });

@@ -101,13 +101,17 @@ Deno.serve(async (request: Request) => {
 
   // General reminders. Idea-linked reminders are delivered from idea_steps
   // below so the 15-minute, execute and plan-check sequence cannot duplicate.
-  const { data: dueReminders } = await supabase
+  const { data: dueReminders, error: remindersError } = await supabase
     .from('reminders')
     .select('id,user_id,title,remind_at,next_trigger_at,recurrence_rule,timezone,idea_step_id')
     .eq('status', 'scheduled')
     .is('idea_step_id', null)
     .lte('next_trigger_at', horizon)
     .limit(50);
+
+  if (remindersError) {
+    return new Response(JSON.stringify({ error: 'Reminder lookup failed.' }), { status: 500 });
+  }
 
   for (const reminder of dueReminders ?? []) {
     const triggerAt = (reminder.next_trigger_at ?? reminder.remind_at) as string;
@@ -150,9 +154,10 @@ Deno.serve(async (request: Request) => {
     }
   }
 
-  const { data: upcoming } = await supabase
+  const { data: upcoming, error: upcomingError } = await supabase
     .from('idea_steps')
     .select('id,user_id,idea_id,title,scheduled_start,ideas!inner(title,status)')
+    .in('ideas.status', ['planned', 'in_progress'])
     .in('status', ['pending', 'in_progress'])
     .eq('notify_upcoming', true)
     .is('upcoming_notified_at', null)
@@ -160,9 +165,10 @@ Deno.serve(async (request: Request) => {
     .lte('scheduled_start', new Date(now.getTime() + 15 * 60_000).toISOString())
     .limit(50);
 
-  const { data: executing } = await supabase
+  const { data: executing, error: executingError } = await supabase
     .from('idea_steps')
     .select('id,user_id,idea_id,title,scheduled_start,ideas!inner(title,status)')
+    .in('ideas.status', ['planned', 'in_progress'])
     .in('status', ['pending', 'in_progress'])
     .eq('notify_execute', true)
     .is('execute_notified_at', null)
@@ -170,15 +176,20 @@ Deno.serve(async (request: Request) => {
     .lte('scheduled_start', nowIso)
     .limit(50);
 
-  const { data: missed } = await supabase
+  const { data: missed, error: missedError } = await supabase
     .from('idea_steps')
     .select('id,user_id,idea_id,title,scheduled_end,task_id,ideas!inner(title,status)')
+    .in('ideas.status', ['planned', 'in_progress'])
     .in('status', ['pending', 'in_progress'])
     .eq('notify_plan_check', true)
     .is('plan_check_notified_at', null)
     .gte('scheduled_end', planCheckFloor)
     .lte('scheduled_end', planCheckCutoff)
     .limit(50);
+
+  if (upcomingError || executingError || missedError) {
+    return new Response(JSON.stringify({ error: 'Idea plan lookup failed.' }), { status: 500 });
+  }
 
   const sendStep = async (
     step: Record<string, unknown>,
@@ -220,9 +231,17 @@ Deno.serve(async (request: Request) => {
       });
       const update: Record<string, string> = { [field]: nowIso };
       if (kind === 'plan_check') update.needs_attention_at = nowIso;
-      await supabase.from('idea_steps').update(update).eq('id', step.id);
+      const { error: stepUpdateError } = await supabase
+        .from('idea_steps')
+        .update(update)
+        .eq('id', step.id);
+      if (stepUpdateError) throw new Error(`step_notification_update:${stepUpdateError.code ?? 'failed'}`);
       if (kind === 'plan_check' && step.task_id) {
-        await supabase.from('tasks').update({ needs_attention_at: nowIso }).eq('id', step.task_id);
+        const { error: taskUpdateError } = await supabase
+          .from('tasks')
+          .update({ needs_attention_at: nowIso })
+          .eq('id', step.task_id);
+        if (taskUpdateError) throw new Error(`task_attention_update:${taskUpdateError.code ?? 'failed'}`);
       }
       await finishRun(supabase, claim.runId, { status: 'succeeded' }, startedAt);
     } catch (error) {
