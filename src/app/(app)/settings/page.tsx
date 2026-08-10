@@ -4,7 +4,6 @@ import type { Metadata } from 'next';
 import { Card, Page, Section } from '@/components/ui/Page';
 import { GoogleConnectionPanel } from '@/features/settings/GoogleConnectionPanel';
 import { ProfileEditor } from '@/features/settings/ProfileEditor';
-import { PushNotificationControl } from '@/features/settings/PushNotificationControl';
 import {
   setAutomaticAdaptationsEnabled,
   setDailyBriefingEnabled,
@@ -120,12 +119,6 @@ export default async function SettingsPage() {
         </Card>
       </Section>
 
-      <Section title="Notifications" description="Private, device-specific alerts for reminders and approved plan sessions.">
-        <Card>
-          <PushNotificationControl vapidPublicKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? ''} />
-        </Card>
-      </Section>
-
       <Section
         title="Privacy"
         description="Everything Atlas holds about you, counted live from the database."
@@ -201,7 +194,7 @@ export default async function SettingsPage() {
             <p className="text-sm font-medium text-primary">Export everything</p>
             <p className="mt-1.5 text-sm leading-relaxed text-tertiary">
               One file with every memory, task, reminder, idea, approval and log entry. Tokens and
-              push credentials are excluded by construction — they are never selected.
+              legacy notification credentials are excluded by construction — they are never selected.
             </p>
           </Card>
 

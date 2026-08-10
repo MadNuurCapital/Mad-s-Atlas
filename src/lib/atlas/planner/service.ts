@@ -277,9 +277,9 @@ export async function executeIdeaPlan(
           scheduled_end: end,
           plan_version: payload.planVersion,
           needs_attention_at: null,
-          notify_upcoming: proposed.createReminder,
-          notify_execute: proposed.createReminder,
-          notify_plan_check: proposed.createReminder,
+          notify_upcoming: false,
+          notify_execute: false,
+          notify_plan_check: false,
           upcoming_notified_at: null,
           execute_notified_at: null,
           plan_check_notified_at: null,
@@ -304,9 +304,9 @@ export async function executeIdeaPlan(
           scheduled_end: end,
           plan_version: payload.planVersion,
           status: 'pending',
-          notify_upcoming: proposed.createReminder,
-          notify_execute: proposed.createReminder,
-          notify_plan_check: proposed.createReminder,
+          notify_upcoming: false,
+          notify_execute: false,
+          notify_plan_check: false,
         })
         .select()
         .single();
@@ -382,11 +382,11 @@ export async function executeIdeaPlan(
       ).toISOString();
       const reminderPayload = {
         title: `Upcoming: ${proposed.title}`,
-        description: `Your Atlas plan session starts in 15 minutes.`,
+        description: 'Saved inside Atlas for this planned session.',
         remind_at: reminderAt,
         next_trigger_at: reminderAt,
         timezone: ATLAS_DEFAULT_TIMEZONE,
-        delivery_channel: 'push' as const,
+        delivery_channel: 'in_app' as const,
         status: 'scheduled' as const,
         related_task_id: taskId,
         google_calendar_event_id: calendarEventId,

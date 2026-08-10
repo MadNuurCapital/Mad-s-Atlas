@@ -339,7 +339,6 @@ capability the app genuinely needs.
 | `GEMINI_API_KEY` | Netlify env, Supabase Edge secrets | Revoke in AI Studio, issue new |
 | `GOOGLE_CLIENT_SECRET` | Netlify env | Rotate in Cloud Console; requires re-consent |
 | `TOKEN_ENCRYPTION_KEY` | Netlify env, Supabase Edge secrets | **See below** |
-| `VAPID_PRIVATE_KEY` | Netlify env | Rotating invalidates all subscriptions |
 
 ### Rotating `TOKEN_ENCRYPTION_KEY`
 

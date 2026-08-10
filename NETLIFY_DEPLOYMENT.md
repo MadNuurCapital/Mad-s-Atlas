@@ -63,7 +63,6 @@ updates automatically unless you pin it.
 | `NEXT_PUBLIC_APP_URL` | `https://<your-site>.netlify.app` — no trailing slash |
 | `NEXT_PUBLIC_SUPABASE_URL` | From Supabase → Data API |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | `sb_publishable_…` |
-| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | From `npx web-push generate-vapid-keys` |
 
 ### Server-only ⚠
 
@@ -81,8 +80,6 @@ updates automatically unless you pin it.
 | `GOOGLE_CLIENT_SECRET` | |
 | `GOOGLE_REDIRECT_URI` | The Supabase callback URL |
 | `TOKEN_ENCRYPTION_KEY` | `openssl rand -base64 32` |
-| `VAPID_PRIVATE_KEY` | |
-| `VAPID_SUBJECT` | `mailto:you@example.com` |
 | `SENTRY_DSN` | Optional; leave unset to disable |
 
 ### Two rules

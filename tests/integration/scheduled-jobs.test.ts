@@ -60,15 +60,13 @@ suite('job claiming', () => {
   });
 
   it('different units of work claim independently', async () => {
-    for (const key of ['reminder:a:2026-08-06T01:00:00Z', 'reminder:a:2026-08-07T01:00:00Z']) {
+    for (const key of ['daily:user:2026-08-06', 'daily:user:2026-08-07']) {
       const result = await client.query(
         `insert into private.job_runs (job_name, run_key, status)
-         values ('check_reminders', $1, 'running')
+         values ('learning_reflection', $1, 'running')
          on conflict (job_name, run_key) do nothing returning id`,
         [key],
       );
-      // A recurring reminder must fire on each occurrence — which is why the
-      // run key includes the trigger time.
       expect(result.rowCount).toBe(1);
     }
   });

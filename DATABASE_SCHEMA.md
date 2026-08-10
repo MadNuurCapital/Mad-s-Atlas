@@ -359,7 +359,7 @@ create index on tasks (user_id, priority, due_at)
 | `remind_at` | `timestamptz not null` | UTC |
 | `recurrence_rule` | `text` | RFC 5545 RRULE |
 | `timezone` | `text not null default 'Asia/Singapore'` | Needed to expand recurrence correctly |
-| `delivery_channel` | `text not null default 'push'` | `push`, `in_app`, `calendar` |
+| `delivery_channel` | `text not null default 'in_app'` | `push` is legacy; active values use `in_app` or `calendar` |
 | `status` | `text not null default 'scheduled'` | `scheduled`, `triggered`, `acknowledged`, `disabled`, `completed` |
 | `related_task_id` | `uuid` → `tasks(id) on delete set null` | |
 | `google_calendar_event_id` | `text` | Only when mirrored, with approval |
@@ -543,7 +543,7 @@ fabricated — if grounding returns nothing, the report says so.
 **`unique (user_id, briefing_date, timezone)`** — the final backstop against
 duplicate briefings, independent of the job lock.
 
-### `notification_subscriptions`
+### `notification_subscriptions` (legacy, disabled)
 
 | Column | Type | Notes |
 |---|---|---|
@@ -558,7 +558,7 @@ duplicate briefings, independent of the job lock.
 
 `unique (user_id, endpoint)`. `p256dh` and `auth_secret` are treated as
 credentials: never returned to any client, never logged, commented as
-sensitive. Only the server sends push messages.
+sensitive. Migration 0015 disables every row; Atlas no longer sends push messages.
 
 ### `tool_runs`
 
@@ -589,7 +589,7 @@ Mechanics of execution, separate from the audit trail.
 | `proactive_briefings_enabled` | `boolean not null` | `true` |
 | `email_summary_enabled` | `boolean not null` | `true` |
 | `calendar_preparation_enabled` | `boolean not null` | `true` |
-| `notification_enabled` | `boolean not null` | `false` — requires explicit browser permission |
+| `notification_enabled` | `boolean not null` | legacy compatibility field, kept `false` |
 | `conversation_retention_days` | `integer not null` | `30`, `check between 1 and 365` |
 | `research_detail_level` | `text not null` | `standard` — `brief`, `standard`, `detailed` |
 | `approval_expiry_minutes` | `integer not null` | `60`, `check between 5 and 1440` |

@@ -33,7 +33,6 @@ const publicSchema = z.object({
   NEXT_PUBLIC_APP_URL: httpUrl('NEXT_PUBLIC_APP_URL'),
   NEXT_PUBLIC_SUPABASE_URL: httpUrl('NEXT_PUBLIC_SUPABASE_URL'),
   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: nonEmpty('NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY'),
-  NEXT_PUBLIC_VAPID_PUBLIC_KEY: z.string().trim().default(''),
 });
 
 export type PublicEnv = z.infer<typeof publicSchema>;
@@ -76,9 +75,6 @@ const serverSchema = z.object({
         return false;
       }
     }, 'TOKEN_ENCRYPTION_KEY must be 32 bytes, base64-encoded (openssl rand -base64 32)'),
-
-  VAPID_PRIVATE_KEY: z.string().trim().default(''),
-  VAPID_SUBJECT: z.string().trim().default(''),
 
   SENTRY_DSN: z.string().trim().default(''),
 
@@ -125,7 +121,6 @@ export function publicEnv(): PublicEnv {
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
     NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
-    NEXT_PUBLIC_VAPID_PUBLIC_KEY: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
   });
 
   if (!parsed.success) throw new EnvironmentError('public', parsed.error.issues);
@@ -173,7 +168,6 @@ export function environmentReadiness(): {
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
     NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
-    NEXT_PUBLIC_VAPID_PUBLIC_KEY: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
   });
   if (!pub.success) missing.push(...pub.error.issues.map((i) => String(i.path[0] ?? '')));
 

@@ -143,7 +143,7 @@ Step 5 is the security boundary. Everything before it is advisory.
 
 | Boundary | Crosses it | Never crosses it |
 |---|---|---|
-| Server → browser | Session cookie; ephemeral Gemini token; rendered data the user owns | `GEMINI_API_KEY`, `SUPABASE_SECRET_KEY`, `GOOGLE_CLIENT_SECRET`, `TOKEN_ENCRYPTION_KEY`, `VAPID_PRIVATE_KEY`, Google access/refresh tokens, encrypted token columns |
+| Server → browser | Session cookie; ephemeral Gemini token; rendered data the user owns | `GEMINI_API_KEY`, `SUPABASE_SECRET_KEY`, `GOOGLE_CLIENT_SECRET`, `TOKEN_ENCRYPTION_KEY`, Google access/refresh tokens, encrypted token columns |
 | Browser → Gemini Live | Audio, ephemeral token, session config | Anything from the database that was not deliberately placed in context |
 | Server → Gemini text | System instructions; user instruction; retrieved content in delimited blocks | Secrets; unrelated memories; other users' data (there are none) |
 | Server → Google | OAuth access token for the owner's own account | Anything about other systems |
