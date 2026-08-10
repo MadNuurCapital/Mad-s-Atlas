@@ -150,8 +150,6 @@ const publicVars = sh("git grep -hoE 'NEXT_PUBLIC_[A-Z0-9_]+' -- ':!*.md' || tru
   .filter(Boolean);
 
 for (const name of new Set(publicVars)) {
-  // VAPID's public key is public by design — it is half of a keypair.
-  if (name === 'NEXT_PUBLIC_VAPID_PUBLIC_KEY') continue;
   if (SENSITIVE_NAMES.some((s) => name.includes(s))) {
     critical('NEXT_PUBLIC_ misuse', `${name} is exposed to the browser by its prefix.`);
   }

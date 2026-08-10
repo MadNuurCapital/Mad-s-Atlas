@@ -55,7 +55,7 @@ export default async function RemindersPage() {
         <EmptyState
           icon={BellRing}
           title="No reminders set"
-          description="Reminders live in your own database. Browser notifications stay off until you grant permission — a setting that was on but silently did nothing would be dishonest."
+          description="Reminders live inside Atlas and appear here when they are due. Background phone notifications are intentionally disabled."
         />
       </Page>
     );
@@ -71,7 +71,7 @@ export default async function RemindersPage() {
   return (
     <Page
       title="Reminders"
-      description={`${reminders.length} reminder${reminders.length === 1 ? '' : 's'}, shown in the timezone each was set in.`}
+      description={`${reminders.length} in-app reminder${reminders.length === 1 ? '' : 's'}, shown in the timezone each was set in.`}
     >
       <AddReminder />
       {sections.map(([label, items]) =>

@@ -209,7 +209,7 @@ clean up after themselves.
 ### Scheduled functions
 - `daily_briefing` produces exactly one briefing per date
 - **Running it twice produces one briefing** — the duplicate test
-- `check_reminders` fires due reminders and advances recurring ones
+- in-app recurring reminders calculate their next occurrence when read
 - `meeting_preparation` never prepares the same event twice
 - `generate_embeddings` retries failures with a bound and gives up cleanly
 - Every job records a `private.job_runs` row, including on failure

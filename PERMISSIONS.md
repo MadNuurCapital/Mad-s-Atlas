@@ -197,16 +197,6 @@ approval to the atomic Level 2 claimant. It cannot alter the hashed payload.
 action. The action itself remains Level 2 and executes through
 `claim_approval()`. Approving is not executing.
 
-### Notifications
-
-| Tool | Level | Description |
-|---|---|---|
-| `notifications.subscribe` | 1 | Register a push subscription (browser permission required first) |
-| `notifications.unsubscribe` | 1 | Remove a subscription |
-| `notifications.test` | 1 | Send a test push to Muhammad's own device |
-
----
-
 ## Where enforcement happens
 
 Four independent points. Bypassing one achieves nothing.

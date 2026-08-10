@@ -272,10 +272,7 @@ supabase secrets set \
   GOOGLE_CLIENT_ID="..." \
   GOOGLE_CLIENT_SECRET="..." \
   ATLAS_OWNER_EMAIL="..." \
-  ATLAS_TIMEZONE="Asia/Singapore" \
-  VAPID_PUBLIC_KEY="..." \
-  VAPID_PRIVATE_KEY="..." \
-  VAPID_SUBJECT="mailto:..."
+  ATLAS_TIMEZONE="Asia/Singapore"
 ```
 
 `SUPABASE_URL` and the service key are injected automatically into Edge
@@ -292,7 +289,6 @@ supabase secrets list
 
 ```bash
 supabase functions deploy daily-briefing
-supabase functions deploy check-reminders
 supabase functions deploy meeting-preparation
 supabase functions deploy generate-embeddings
 supabase functions deploy maintenance

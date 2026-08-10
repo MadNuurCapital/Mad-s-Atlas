@@ -31,7 +31,7 @@ relying on the model "knowing not to", you have a bug.
 ### 2. Secrets never reach the browser
 
 `GEMINI_API_KEY`, `SUPABASE_SECRET_KEY`, `GOOGLE_CLIENT_SECRET`,
-`TOKEN_ENCRYPTION_KEY` and `VAPID_PRIVATE_KEY` are server-only. Never import
+`TOKEN_ENCRYPTION_KEY` is server-only. Never import
 them from a client component, never pass them as props, never include them in a
 route handler response, never log them.
 

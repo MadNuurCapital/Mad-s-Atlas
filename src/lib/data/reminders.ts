@@ -22,6 +22,27 @@ export type ReminderBuckets = {
   inactive: Reminder[];
 };
 
+export function withCurrentOccurrence(reminder: Reminder, now = new Date()): Reminder {
+  if (!reminder.recurrence_rule || ['disabled', 'completed'].includes(reminder.status)) {
+    return reminder;
+  }
+
+  const current = new Date(reminder.next_trigger_at ?? reminder.remind_at);
+  if (current.getTime() > now.getTime()) return reminder;
+
+  try {
+    const upcoming = nextOccurrence(
+      reminder.recurrence_rule,
+      new Date(reminder.remind_at),
+      now,
+      reminder.timezone,
+    );
+    return upcoming ? { ...reminder, next_trigger_at: upcoming.toISOString() } : reminder;
+  } catch {
+    return reminder;
+  }
+}
+
 export async function listReminders(): Promise<Reminder[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -31,7 +52,8 @@ export async function listReminders(): Promise<Reminder[]> {
     .order('remind_at', { ascending: true });
 
   if (error) throw new Error(`Could not load reminders (${error.code ?? 'unknown'})`);
-  return (data ?? []) as Reminder[];
+  const now = new Date();
+  return ((data ?? []) as Reminder[]).map((reminder) => withCurrentOccurrence(reminder, now));
 }
 
 /** One snapshot, partitioned — not four queries that could disagree. */
@@ -77,7 +99,7 @@ export async function createReminder(input: CreateReminderInput): Promise<Remind
   const seriesStart = new Date(input.remindAt);
 
   // For a recurring reminder the FIRST trigger is the series start itself.
-  // Later occurrences are computed by the cron job from the same rule, in the
+  // Later occurrences are calculated when Atlas reads the reminder, in the
   // reminder's OWN timezone — "every weekday at 9am" means 9am where Muhammad
   // is, not where the server happens to run.
   //

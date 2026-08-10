@@ -252,17 +252,16 @@ the research report UI.
 
 ### Scope
 
-The `daily-briefing`, `check-reminders`, `meeting-preparation`,
+The `daily-briefing`, `meeting-preparation`,
 `generate-embeddings` and `maintenance` Edge Functions; `private.job_runs` and
-the claim pattern; all cron schedules; web push subscription and delivery; the
+the claim pattern; all cron schedules; the
 `/today` screen with the briefing; the job status view in Settings.
 
 ### Exit gate
 - The briefing generates at 01:00 UTC / 09:00 SGT
 - **Running the job twice produces one briefing**
-- Reminders fire once, and recurring reminders advance correctly
+- In-app reminders remain visible and recurring schedules advance when read
 - The same meeting is never prepared twice
-- Push notifications require explicit browser permission
 - Every job records a `job_runs` row, including on failure
 - A disconnected Google produces a degraded briefing that **says** it is
   degraded

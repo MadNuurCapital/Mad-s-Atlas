@@ -123,7 +123,7 @@ is inactive.
 | `proactive_briefings_enabled` | on | on/off |
 | `email_summary_enabled` | on | on/off |
 | `calendar_preparation_enabled` | on | on/off |
-| `notification_enabled` | **off** | on/off — requires browser permission |
+| `notification_enabled` | **off** | legacy compatibility field; push delivery is retired |
 | `approval_expiry_minutes` | 60 | 5–1440 |
 | `meeting_prep_lead_minutes` | 30 | 5–240 |
 | `learning_enabled` | on | on/off |
@@ -132,8 +132,8 @@ is inactive.
 | `system_diagnostics_enabled` | on | on/off |
 | `automatic_adaptations_enabled` | **off** | on/off; low-risk and reversible only |
 
-Notifications default to off because they require an explicit browser permission
-prompt, and a default-on setting that silently does nothing would be dishonest.
+The legacy notification setting remains off. Push delivery and its background
+worker are retired; existing subscription rows are disabled, not deleted.
 
 ---
 
@@ -147,7 +147,7 @@ and summaries, research reports with sources, daily briefings, and the additive
 learning/evolution export from `export_learning_data()`.
 
 **Excluded by construction, not by filtering:** encrypted token columns, the
-encryption key, API keys, push subscription secrets. `export_all_user_data()`
+encryption key, API keys, legacy notification subscription secrets. `export_all_user_data()`
 never selects those columns, so they cannot be included by mistake.
 
 The file is generated server-side and delivered via a short-expiry signed URL

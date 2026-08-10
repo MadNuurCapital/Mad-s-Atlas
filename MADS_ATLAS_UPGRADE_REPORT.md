@@ -160,7 +160,6 @@ transition on the physical-device smoke test.
 - `ATLAS_TIMEZONE` (defaults to `Asia/Singapore`)
 - `GOOGLE_REDIRECT_URI`
 - `SUPABASE_DB_URL` (integration tests and database tooling)
-- `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`
 - `SENTRY_DSN`
 
 ### Deprecated

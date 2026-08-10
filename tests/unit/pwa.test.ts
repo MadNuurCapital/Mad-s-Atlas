@@ -41,12 +41,14 @@ describe('Atlas PWA contract', () => {
     }
   });
 
-  it('ships a push-only worker with plan deep links and no offline cache of private data', () => {
-    const worker = readFileSync(join(process.cwd(), 'public/sw.js'), 'utf8');
-    expect(worker).toContain("addEventListener('push'");
-    expect(worker).toContain("addEventListener('notificationclick'");
-    expect(worker).toContain('/api/ideas/step-action');
-    expect(worker).toContain('#idea-command');
-    expect(worker).not.toMatch(/caches\.open|cache\.put/);
+  it('removes the legacy push worker and never registers another one', () => {
+    expect(existsSync(join(process.cwd(), 'public/sw.js'))).toBe(false);
+    const bootstrap = readFileSync(
+      join(process.cwd(), 'src/components/pwa/PwaBootstrap.tsx'),
+      'utf8',
+    );
+    expect(bootstrap).toContain('getRegistrations()');
+    expect(bootstrap).toContain('registration.unregister()');
+    expect(bootstrap).not.toContain('serviceWorker.register(');
   });
 });
