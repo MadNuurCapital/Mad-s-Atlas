@@ -1,4 +1,9 @@
-import { RRule } from 'npm:rrule@2.8.1';
+// `rrule` publishes CommonJS to npm. Supabase Edge Runtime (Deno) exposes a
+// CommonJS package through its default export; requesting `RRule` as a native
+// ESM named export makes the worker fail during boot.
+import rrule from 'npm:rrule@2.8.1';
+
+const { RRule } = rrule;
 
 function timezoneOffsetMinutes(date: Date, timeZone: string): number {
   const parts = new Intl.DateTimeFormat('en-US', {
