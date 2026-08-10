@@ -19,6 +19,7 @@ export function IdeaSteps({ ideaId, steps }: { ideaId: string; steps: IdeaStep[]
     formData.set('ideaId', ideaId);
     formData.set('stepId', stepId);
     startTransition(async () => {
+      setError(null);
       const result = await completeStepAction(formData);
       if (!result.ok) setError(result.error);
       router.refresh();

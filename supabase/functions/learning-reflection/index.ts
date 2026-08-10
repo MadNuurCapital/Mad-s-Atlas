@@ -6,38 +6,7 @@
  * proposals for sustained degradation. It never executes proposal text.
  */
 
-import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
-import { withSupabase } from 'jsr:@supabase/server@^1';
-import type { SupabaseClient } from 'jsr:@supabase/supabase-js@2';
-
-async function claimRun(supabase: SupabaseClient, jobName: string, runKey: string) {
-  const { data, error } = await supabase.rpc('job_claim', { p_job_name: jobName, p_run_key: runKey });
-  if (error) throw new Error(`Could not claim ${jobName}: ${error.code ?? 'rpc_failed'}`);
-  return data ? { claimed: true as const, runId: data as string } : { claimed: false as const };
-}
-
-async function finishRun(
-  supabase: SupabaseClient,
-  runId: string,
-  outcome: { status: 'succeeded' | 'failed' | 'skipped'; errorCode?: string; details?: unknown },
-  startedAt: number,
-) {
-  await supabase.rpc('job_finish', {
-    p_run_id: runId,
-    p_status: outcome.status,
-    p_error_code: outcome.errorCode ?? null,
-    p_details: outcome.details ?? {},
-    p_duration_ms: Date.now() - startedAt,
-  });
-}
-
-function localDateKey(date: Date, timeZone: string): string {
-  const parts = new Intl.DateTimeFormat('en-CA', {
-    year: 'numeric', month: '2-digit', day: '2-digit', timeZone,
-  }).formatToParts(date);
-  const get = (type: string) => parts.find((part) => part.type === type)?.value ?? '';
-  return `${get('year')}-${get('month')}-${get('day')}`;
-}
+import { adminClient, claimRun, finishRun, isAuthorisedCaller, localDateKey } from '../_shared/job.ts';
 
 type LogRow = { tool_name: string; status: string; duration_ms: number | null };
 
@@ -47,13 +16,19 @@ function metricHealth(name: string, value: number, samples: number): 'healthy' |
   return value >= 8000 ? 'degraded' : value >= 3000 ? 'watch' : 'healthy';
 }
 
-export default {
-  fetch: withSupabase({ auth: 'secret' }, async (request, ctx) => {
+Deno.serve(async (request: Request) => {
+  if (!isAuthorisedCaller(request)) {
+    return new Response(JSON.stringify({ error: 'Unauthorised.' }), { status: 401 });
+  }
+
   const startedAt = Date.now();
   const body = (await request.json().catch(() => ({}))) as { weekly?: boolean };
   const weekly = body.weekly === true;
-  const supabase = ctx.supabaseAdmin;
-  const { data: profiles } = await supabase.from('profiles').select('user_id,timezone');
+  const supabase = adminClient();
+  const { data: profiles, error: profilesError } = await supabase.from('profiles').select('user_id,timezone');
+  if (profilesError) {
+    return new Response(JSON.stringify({ error: 'Profile lookup failed.' }), { status: 500 });
+  }
   const outcomes: Array<{ user: string; metrics: number; status: string }> = [];
 
   for (const profile of profiles ?? []) {
@@ -160,6 +135,5 @@ export default {
     }
   }
 
-    return Response.json({ outcomes });
-  }),
-};
+  return Response.json({ outcomes });
+});

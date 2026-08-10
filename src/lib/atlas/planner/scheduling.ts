@@ -76,10 +76,18 @@ export function schedulePlanSteps(input: {
   const now = input.now ?? new Date();
   const timezone = input.timezone ?? ATLAS_DEFAULT_TIMEZONE;
   const today = localDateKey(now, timezone);
-  const earliest = input.draft.constraints.earliestDate ?? today;
-  const latest = input.draft.constraints.latestDate ?? addLocalDays(earliest, 30);
-  const startHour = input.draft.constraints.preferredStartHour ?? 8;
-  const endHour = input.draft.constraints.preferredEndHour ?? 10;
+  const requestedEarliest = input.draft.constraints.earliestDate ?? today;
+  const requestedLatest = input.draft.constraints.latestDate ?? addLocalDays(requestedEarliest, 30);
+  // Model output is schema-checked, but JSON Schema cannot express relations
+  // between two fields. Normalise inverted ranges instead of returning a plan
+  // whose every step is unexpectedly unscheduled.
+  const earliest = requestedLatest < requestedEarliest ? today : requestedEarliest;
+  const latest = requestedLatest < requestedEarliest ? addLocalDays(earliest, 30) : requestedLatest;
+  const requestedStartHour = input.draft.constraints.preferredStartHour ?? 8;
+  const requestedEndHour = input.draft.constraints.preferredEndHour ?? 10;
+  const [startHour, endHour] = requestedEndHour > requestedStartHour
+    ? [requestedStartHour, requestedEndHour]
+    : [8, 10];
   const avoid = new Set(input.draft.constraints.avoidWeekdays);
   const occupied = parseBusy(input.busy);
 

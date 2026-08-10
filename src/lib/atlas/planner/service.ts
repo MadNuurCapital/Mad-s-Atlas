@@ -181,11 +181,25 @@ export async function proposeIdeaPlan(input: {
       .contains('proposed_payload', { ideaId: detail.idea.id })
       .neq('id', approval.id);
 
-    await supabase
+    const { data: linkedIdea, error: linkError } = await supabase
       .from('ideas')
       .update({ pending_approval_id: approval.id })
       .eq('id', detail.idea.id)
-      .eq('plan_version', planVersion);
+      .eq('plan_version', planVersion)
+      .select('id')
+      .maybeSingle();
+    if (linkError || !linkedIdea) {
+      await admin
+        .from('approvals')
+        .update({ status: 'rejected', rejected_at: new Date().toISOString() })
+        .eq('id', approval.id)
+        .eq('status', 'pending');
+      return {
+        ok: false,
+        errorCode: linkError?.code ?? 'plan_changed',
+        message: 'This Idea changed before Atlas could attach its approval. Open it and plan again.',
+      };
+    }
 
     return { ok: true, data: { approval, payload }, summary: 'Prepared a calendar-checked plan for approval' };
   } catch {
@@ -193,9 +207,9 @@ export async function proposeIdeaPlan(input: {
   }
 }
 
-async function updateNextAction(ideaId: string): Promise<void> {
+async function updateNextAction(ideaId: string): Promise<{ errorCode: string; message: string } | null> {
   const supabase = await createClient();
-  const { data: next } = await supabase
+  const { data: next, error: nextError } = await supabase
     .from('idea_steps')
     .select('*')
     .eq('idea_id', ideaId)
@@ -204,8 +218,11 @@ async function updateNextAction(ideaId: string): Promise<void> {
     .order('position')
     .limit(1)
     .maybeSingle();
+  if (nextError) {
+    return { errorCode: nextError.code, message: 'Atlas could not determine the next plan action.' };
+  }
 
-  await supabase
+  const { error } = await supabase
     .from('ideas')
     .update({
       next_action: next?.title ?? null,
@@ -214,6 +231,9 @@ async function updateNextAction(ideaId: string): Promise<void> {
       last_touched_at: new Date().toISOString(),
     })
     .eq('id', ideaId);
+  return error
+    ? { errorCode: error.code, message: 'Atlas could not save the next plan action.' }
+    : null;
 }
 
 export async function executeIdeaPlan(
@@ -323,11 +343,12 @@ export async function executeIdeaPlan(
         taskId = data.id;
       }
     } else if (taskId) {
-      await supabase
+      const { error } = await supabase
         .from('tasks')
         .update({ status: 'cancelled', completed_at: null })
         .eq('id', taskId)
         .neq('status', 'completed');
+      if (error) return { ok: false, errorCode: error.code, message: `Could not disable the task for “${proposed.title}”.` };
     }
 
     let calendarEventId = step.google_calendar_event_id;
@@ -342,7 +363,11 @@ export async function executeIdeaPlan(
       if (!event.ok) return { ok: false, errorCode: event.errorCode, message: event.message };
       calendarEventId = event.data.eventId;
       if (taskId) {
-        await supabase.from('tasks').update({ google_calendar_event_id: calendarEventId }).eq('id', taskId);
+        const { error } = await supabase
+          .from('tasks')
+          .update({ google_calendar_event_id: calendarEventId })
+          .eq('id', taskId);
+        if (error) return { ok: false, errorCode: error.code, message: `Could not link the calendar event for “${proposed.title}”.` };
       }
     } else if (calendarEventId) {
       const removed = await deletePlanEvent(userId, calendarEventId, signal);
@@ -381,13 +406,15 @@ export async function executeIdeaPlan(
         reminderId = data.id;
       }
     } else if (reminderId) {
-      await supabase.from('reminders').update({ status: 'disabled' }).eq('id', reminderId);
+      const { error } = await supabase.from('reminders').update({ status: 'disabled' }).eq('id', reminderId);
+      if (error) return { ok: false, errorCode: error.code, message: `Could not disable the reminder for “${proposed.title}”.` };
     }
 
-    await supabase
+    const { error: linkError } = await supabase
       .from('idea_steps')
       .update({ task_id: taskId, reminder_id: reminderId, google_calendar_event_id: calendarEventId })
       .eq('id', step.id);
+    if (linkError) return { ok: false, errorCode: linkError.code, message: `Could not link the plan records for “${proposed.title}”.` };
   }
 
   for (const stepId of payload.supersededStepIds) {
@@ -398,17 +425,22 @@ export async function executeIdeaPlan(
       if (!removed.ok) return { ok: false, errorCode: removed.errorCode, message: removed.message };
     }
     if (old.task_id) {
-      await supabase.from('tasks').update({ status: 'cancelled', completed_at: null }).eq('id', old.task_id).neq('status', 'completed');
+      const { error } = await supabase.from('tasks').update({ status: 'cancelled', completed_at: null }).eq('id', old.task_id).neq('status', 'completed');
+      if (error) return { ok: false, errorCode: error.code, message: `Could not close the old task for “${old.title}”.` };
     }
-    if (old.reminder_id) await supabase.from('reminders').update({ status: 'disabled' }).eq('id', old.reminder_id);
-    await supabase
+    if (old.reminder_id) {
+      const { error } = await supabase.from('reminders').update({ status: 'disabled' }).eq('id', old.reminder_id);
+      if (error) return { ok: false, errorCode: error.code, message: `Could not close the old reminder for “${old.title}”.` };
+    }
+    const { error: skipError } = await supabase
       .from('idea_steps')
       .update({ status: 'skipped', google_calendar_event_id: null })
       .eq('id', old.id);
+    if (skipError) return { ok: false, errorCode: skipError.code, message: `Could not close the old step “${old.title}”.` };
   }
 
   const hasCompleted = detail.steps.some((step) => step.status === 'completed');
-  await supabase
+  const { data: activated, error: activationError } = await supabase
     .from('ideas')
     .update({
       status: hasCompleted ? 'in_progress' : 'planned',
@@ -419,8 +451,18 @@ export async function executeIdeaPlan(
       last_touched_at: new Date().toISOString(),
     })
     .eq('id', payload.ideaId)
-    .eq('plan_version', payload.planVersion);
-  await updateNextAction(payload.ideaId);
+    .eq('plan_version', payload.planVersion)
+    .select('id')
+    .maybeSingle();
+  if (activationError || !activated) {
+    return {
+      ok: false,
+      errorCode: activationError?.code ?? 'plan_changed',
+      message: 'The plan records were prepared, but Atlas could not activate this Idea. Re-plan it before continuing.',
+    };
+  }
+  const nextActionError = await updateNextAction(payload.ideaId);
+  if (nextActionError) return { ok: false, ...nextActionError };
 
   return {
     ok: true,
@@ -451,12 +493,29 @@ export async function completeIdeaStep(
   const detail = await getIdeaDetail(ideaId);
   const step = detail?.steps.find((candidate) => candidate.id === stepId);
   if (!detail || !step) return { ok: false, errorCode: 'not_found', message: 'That plan step could not be found.' };
+  if (detail.idea.status === 'archived') {
+    return { ok: false, errorCode: 'archived', message: 'Restore this Idea before completing its steps.' };
+  }
   if (step.status === 'completed') {
     return { ok: true, data: { nextAction: detail.idea.next_action }, summary: 'That step was already completed' };
   }
 
   const now = new Date().toISOString();
   const supabase = await createClient();
+  // Update linked rows first. If the final step write fails, retrying remains
+  // safe and can finish the operation instead of leaving an unrecoverable
+  // "completed" step with an unfinished task or reminder.
+  if (step.task_id) {
+    const { error: taskError } = await supabase
+      .from('tasks')
+      .update({ status: 'completed', completed_at: now, needs_attention_at: null })
+      .eq('id', step.task_id);
+    if (taskError) return { ok: false, errorCode: taskError.code, message: 'The linked task could not be completed, so Atlas left the plan step open.' };
+  }
+  if (step.reminder_id) {
+    const { error: reminderError } = await supabase.from('reminders').update({ status: 'completed' }).eq('id', step.reminder_id);
+    if (reminderError) return { ok: false, errorCode: reminderError.code, message: 'The linked reminder could not be completed, so Atlas left the plan step open.' };
+  }
   const { error } = await supabase
     .from('idea_steps')
     .update({ status: 'completed', completed_at: now, needs_attention_at: null })
@@ -464,19 +523,14 @@ export async function completeIdeaStep(
     .eq('idea_id', ideaId);
   if (error) return { ok: false, errorCode: error.code, message: 'Atlas could not complete that step.' };
 
-  if (step.task_id) {
-    await supabase
-      .from('tasks')
-      .update({ status: 'completed', completed_at: now, needs_attention_at: null })
-      .eq('id', step.task_id);
-  }
-  if (step.reminder_id) await supabase.from('reminders').update({ status: 'completed' }).eq('id', step.reminder_id);
-  await supabase
+  const { error: ideaError } = await supabase
     .from('ideas')
     .update({ status: 'in_progress', last_touched_at: now })
     .eq('id', ideaId)
     .neq('status', 'archived');
-  await updateNextAction(ideaId);
+  if (ideaError) return { ok: false, errorCode: ideaError.code, message: 'The plan step was completed, but the Idea could not be updated.' };
+  const nextActionError = await updateNextAction(ideaId);
+  if (nextActionError) return { ok: false, ...nextActionError };
 
   const refreshed = await getIdeaDetail(ideaId);
   return {
